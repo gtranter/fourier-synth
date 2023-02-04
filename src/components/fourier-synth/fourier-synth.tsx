@@ -23,15 +23,24 @@ export class FourierSynth {
 
 	private readonly FUNDAMENTAL: number = 400;
 
-	private readonly MULTIPLIER: number = 10.0;
+	private readonly SCALE: number = 10.0;
 
 	private readonly TIME_BASE: number = 40.0/Math.PI;
+
+	private readonly VOLUME_DEFAULT: number = 5;
 
 	@Element() hostElement: HTMLFourierSynthElement;
 
 	@State() enableAudio: boolean = true;
 
 	@State() updates: number = 0;
+
+	@State() volume: number = this.VOLUME_DEFAULT;
+	@Watch('volume')
+	handleVolumeChange(newValue: number) {
+		newValue = Math.max(0, Math.min(newValue, this.SCALE));
+		this._update();
+	}
 
 	/**
 	 * Label text for the "Enable Audio" toggle switch.
@@ -89,6 +98,11 @@ export class FourierSynth {
 	 */
 	@Prop({reflect: true}) sinTitle: string = 'Sinus';
 
+	/**
+	 * Text for the volume control label.
+	 */
+	@Prop({reflect: true}) volumeLabel: string = 'Volume';
+
 	async componentWillLoad() {
 		// initialize data
 		this._data = {};
@@ -134,10 +148,10 @@ export class FourierSynth {
 		if (this.enableAudio) {
 
 			for (let i = 0; i < 80; i++) {
-				let y = this._data.cos0.value / (2.0 * this.MULTIPLIER);
+				let y = this._data.cos0.value / (2.0 * this.SCALE);
 				for (let anz = 1; anz <= this.harmonics; anz++) {
-					y += this._data[`cos${anz}`].value / this.MULTIPLIER * Math.cos(anz * i / this.TIME_BASE);
-					y += this._data[`sin${anz}`].value / this.MULTIPLIER * Math.sin(anz * i / this.TIME_BASE);
+					y += this._data[`cos${anz}`].value / this.SCALE * Math.cos(anz * i / this.TIME_BASE);
+					y += this._data[`sin${anz}`].value / this.SCALE * Math.sin(anz * i / this.TIME_BASE);
 				}
 
 				if (this.enableAudio && (i % 2 === 0)) {
@@ -208,15 +222,19 @@ export class FourierSynth {
 
 		// scale the original 400-wide graph to variable width graph
 		const scale = maxX / this.FUNDAMENTAL;
-		const muliplier = this.MULTIPLIER * scale;
+		const adjust = this.SCALE * scale;
 		const timeBase = this.TIME_BASE * scale;
+		// make volume logarithmic from 0 to 2 with roughly 0.5 in the center (value 5)
+		const volume = (Math.pow(this.SCALE, this.volume/this.SCALE) - 1) / ((this.SCALE - 1) / 2);
+		console.log(volume);
 
 		for (let i = 0; i < 80 * scale; i++) {
-			let y = this._data.cos0.value / muliplier;
+			let y = -this._data.cos0.value / adjust * 2;
 			for (let harmonics = 1; harmonics <= this.harmonics; harmonics++) {
-				y += this._data[`cos${harmonics}`].value / muliplier * Math.cos(harmonics * i / timeBase);
-				y += this._data[`sin${harmonics}`].value / muliplier * Math.sin(harmonics * i / timeBase);
+				y += this._data[`cos${harmonics}`].value / adjust * Math.cos(harmonics * i / timeBase);
+				y += this._data[`sin${harmonics}`].value / adjust * Math.sin(harmonics * i / timeBase);
 			}
+			y *= volume;
 
 			let iy = (y * (10 * scale) + (100 * scale));
 
@@ -313,6 +331,7 @@ export class FourierSynth {
 		}
 		else {
 			// reset all
+			this.volume = this.VOLUME_DEFAULT;
 			Object.keys(this._data).forEach(id => {
 				this._data[id].formattedValue = '0.0';
 				this._data[id].value = 0;
@@ -477,6 +496,29 @@ export class FourierSynth {
 								<div class="row">&nbsp;</div>{/* spacer row */}
 								{Object.keys(this._data).map(id => id.startsWith('sin') && row(id))}
 							</div>
+						</div>
+						<div class="row volume">
+							<label class="label" htmlFor="volume">{this.volumeLabel}</label>
+							<input class="slider"
+								id="volume"
+								name="volume"
+								type="range"
+								min={0}
+								max={10}
+								step={0.1}
+								value={this.volume}
+								onInput={event => this.volume = Number((event.currentTarget as HTMLInputElement).value)}
+							></input>
+							<input class="field"
+								name="volume"
+								type="number"
+								min={0}
+								max={10}
+								step={0.1}
+								value={this.volume}
+								onChange={event => this.volume = Number((event.currentTarget as HTMLInputElement).value)}
+							></input>
+							<button class="clear" onClick={() => this.volume = this.VOLUME_DEFAULT}>X</button>
 						</div>
 						<button class="reset" onClick={() => this._resetData()}>Reset</button>
 					</div>
