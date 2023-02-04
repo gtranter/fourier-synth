@@ -15,7 +15,8 @@ export class FourierSynth {
 
 	private _canvas: HTMLCanvasElement;
 	private _data: Record<string, FourierData>;
-	private _formatter = Intl.NumberFormat(navigator.language, {minimumFractionDigits: 1});
+	private _fieldFormatter = Intl.NumberFormat(navigator.language, {minimumFractionDigits: 1, maximumFractionDigits: 1});
+	private _volumeFormatter = Intl.NumberFormat(navigator.language, {minimumFractionDigits: 2, maximumFractionDigits: 2});
 	private _renderer: CanvasRenderingContext2D;
 	private _sound = Array<number>(40);
 
@@ -23,15 +24,24 @@ export class FourierSynth {
 
 	private readonly FUNDAMENTAL: number = 400;
 
-	private readonly MULTIPLIER: number = 10.0;
+	private readonly SCALE: number = 10.0;
 
 	private readonly TIME_BASE: number = 40.0/Math.PI;
+
+	private readonly VOLUME_DEFAULT: number = 5.125;
 
 	@Element() hostElement: HTMLFourierSynthElement;
 
 	@State() enableAudio: boolean = true;
 
 	@State() updates: number = 0;
+
+	@State() volume: number = this.VOLUME_DEFAULT;
+	@Watch('volume')
+	handleVolumeChange(newValue: number) {
+		this.volume = Math.max(0, Math.min(newValue, this.SCALE));
+		this._update();
+	}
 
 	/**
 	 * Label text for the "Enable Audio" toggle switch.
@@ -46,7 +56,7 @@ export class FourierSynth {
 	/**
 	 * Title text for the cosine controls.
 	 */
-	@Prop({reflect: true}) cosTitle: string = 'Cosinus';
+	@Prop({reflect: true}) cosTitle: string = 'Cos';
 
 	/**
 	 * Number of harmonics to control and produce.
@@ -54,6 +64,11 @@ export class FourierSynth {
 	@Prop({mutable: true, reflect: true}) harmonics: number = 8;
 	@Watch('harmonics')
 	handleHarmonicsChange(newValue: number, oldValue: number) {
+		console.log('harmonics change', newValue);
+		// bounds check
+		this.harmonics = newValue = this._setBoundsHarmonics(newValue);
+
+		// update data
 		if (newValue < oldValue) {
 			for (let harmonic = newValue + 1; harmonic <= oldValue; harmonic++) {
 				delete this._data[`cos${harmonic}`];
@@ -74,10 +89,36 @@ export class FourierSynth {
 				};
 			}
 		}
+
 		this._update();
 	}
 
+	/**
+	 * Text for the main title.
+	 */
 	@Prop({reflect: true}) mainTitle: string = 'Fourier Synthesis';
+
+	/**
+	 * Maximum number of harmonics to allow via the harmonics field.
+	 * When maxHarmonics === minHarmonics, the harmonics field is not shown.
+	 */
+	@Prop() maxHarmonics: number = 8;
+	@Watch('maxHarmonics')
+	handleMaxHarmonicsChange(newValue: number) {
+		// none that are above audio frequencies and not lower than minHarmonics
+		this.maxHarmonics = Math.max(this.minHarmonics, Math.min(Math.round(newValue), Math.floor(20000 / this.FUNDAMENTAL)));
+	}
+
+	/**
+	 * Minimum number of harmonics to allow via the harmonics field.
+	 * When maxHarmonics === minHarmonics, the harmonics field is not shown.
+	 */
+	@Prop() minHarmonics: number = 8;
+	@Watch('minHarmonics')
+	handleMinHarmonicsChange(newValue: number) {
+		// at least one and not higher than maxHarmonics
+		this.minHarmonics = Math.min(Math.round(newValue), Math.max(this.maxHarmonics, 1));
+	}
 
 	/**
 	 * Text prefix for the number label on sine controls.
@@ -87,11 +128,18 @@ export class FourierSynth {
 	/**
 	 * Title text for the sine controls.
 	 */
-	@Prop({reflect: true}) sinTitle: string = 'Sinus';
+	@Prop({reflect: true}) sinTitle: string = 'Sin';
+
+	/**
+	 * Text for the volume control label.
+	 */
+	@Prop({reflect: true}) volumeLabel: string = 'Volume';
 
 	async componentWillLoad() {
 		// initialize data
 		this._data = {};
+		// bounds check harmonics
+		this.harmonics = this._setBoundsHarmonics(this.harmonics);
 		for (let harmonic = 0; harmonic <= this.harmonics; harmonic++) {
 			this._data[`cos${harmonic}`] = {
 				formattedValue: '0.0',
@@ -110,7 +158,7 @@ export class FourierSynth {
 
 	async componentDidLoad() {
 		// block non numeric input on fields
-		const decimal = this._formatter.formatToParts(1.1).find(p => p.type === 'decimal')?.value ?? '.';
+		const decimal = this._fieldFormatter.formatToParts(1.1).find(p => p.type === 'decimal')?.value ?? '.';
 		const regexp = RegExp(`[-\\d${decimal}]`, 'g');
 		this.hostElement.shadowRoot.querySelectorAll('.field').forEach(input => {
 			// input[type=number] does not support `pattern` and JSX does not support `onBeforeInput`
@@ -134,10 +182,10 @@ export class FourierSynth {
 		if (this.enableAudio) {
 
 			for (let i = 0; i < 80; i++) {
-				let y = this._data.cos0.value / (2.0 * this.MULTIPLIER);
+				let y = this._data.cos0.value / (2.0 * this.SCALE);
 				for (let anz = 1; anz <= this.harmonics; anz++) {
-					y += this._data[`cos${anz}`].value / this.MULTIPLIER * Math.cos(anz * i / this.TIME_BASE);
-					y += this._data[`sin${anz}`].value / this.MULTIPLIER * Math.sin(anz * i / this.TIME_BASE);
+					y += this._data[`cos${anz}`].value / this.SCALE * Math.cos(anz * i / this.TIME_BASE);
+					y += this._data[`sin${anz}`].value / this.SCALE * Math.sin(anz * i / this.TIME_BASE);
 				}
 
 				if (this.enableAudio && (i % 2 === 0)) {
@@ -176,6 +224,7 @@ export class FourierSynth {
 				this._renderer.beginPath();
 				this._renderer.arc(x, y, 1, 0, Math.PI * 2, true);
 				this._renderer.fill();
+				this._renderer.closePath();
 			}
 		}
 
@@ -194,6 +243,7 @@ export class FourierSynth {
 			this._renderer.lineTo(axisX, maxY);
 		}
 		this._renderer.stroke();
+		this._renderer.closePath();
 
 		// draw wave
 
@@ -208,14 +258,17 @@ export class FourierSynth {
 
 		// scale the original 400-wide graph to variable width graph
 		const scale = maxX / this.FUNDAMENTAL;
-		const muliplier = this.MULTIPLIER * scale;
+		const adjust = this.SCALE * scale;
 		const timeBase = this.TIME_BASE * scale;
+		// make volume logarithmic from 0 to 2 with roughly 0.5 in the center (value 5)
+		const volume = (Math.pow(this.SCALE, this.volume/this.SCALE) - 1) / ((this.SCALE - 1) / 2);
+		console.log(volume, `${20*Math.log10(volume)}dB`);
 
 		for (let i = 0; i < 80 * scale; i++) {
-			let y = this._data.cos0.value / muliplier;
+			let y = -this._data.cos0.value / (adjust / 2);
 			for (let harmonics = 1; harmonics <= this.harmonics; harmonics++) {
-				y += this._data[`cos${harmonics}`].value / muliplier * Math.cos(harmonics * i / timeBase);
-				y += this._data[`sin${harmonics}`].value / muliplier * Math.sin(harmonics * i / timeBase);
+				y += volume * this._data[`cos${harmonics}`].value / adjust * Math.cos(harmonics * i / timeBase);
+				y += volume * this._data[`sin${harmonics}`].value / adjust * Math.sin(harmonics * i / timeBase);
 			}
 
 			let iy = (y * (10 * scale) + (100 * scale));
@@ -233,6 +286,7 @@ export class FourierSynth {
 			}
 		}
 		this._renderer.stroke();
+		this._renderer.closePath();
 
 		this._renderer.fillStyle = 'rgb(255, 0, 127)';
 		for (let j = 0; j <= maxX; j += 80 * scale) {
@@ -240,9 +294,12 @@ export class FourierSynth {
 			this._renderer.moveTo(j - 1, ya);
 			this._renderer.lineTo(j, yf);
 			this._renderer.stroke();
+			this._renderer.closePath();
 			// wave start-stop ticks
-			this._renderer.arc(j, ya, 3, 0, Math.PI * 2, true);
+			this._renderer.beginPath();
+			this._renderer.arc(j, ya, 3, -Math.PI, Math.PI, true);
 			this._renderer.fill();
+			this._renderer.closePath();
 		}
 	}
 
@@ -313,6 +370,7 @@ export class FourierSynth {
 		}
 		else {
 			// reset all
+			this.volume = this.VOLUME_DEFAULT;
 			Object.keys(this._data).forEach(id => {
 				this._data[id].formattedValue = '0.0';
 				this._data[id].value = 0;
@@ -320,6 +378,10 @@ export class FourierSynth {
 		}
 
 		this._update();
+	}
+
+	private _setBoundsHarmonics(harmonics: number): number {
+		return Math.max(this.minHarmonics, Math.min(Math.round(harmonics), this.maxHarmonics));
 	}
 
 	/**
@@ -356,7 +418,7 @@ export class FourierSynth {
 
 		// update other input/slider
 		data.value = value;
-		data.formattedValue = this._formatter.format(value);
+		data.formattedValue = this._fieldFormatter.format(value);
 
 		this._update();
 	}
@@ -452,18 +514,19 @@ export class FourierSynth {
 								max={1}
 								step={1}
 								value={this.enableAudio ? 1 : 0}
-								onInput={event => this.enableAudio = (event.currentTarget as HTMLInputElement).value === '1' }
+								onInput={event => this.enableAudio = (event.currentTarget as HTMLInputElement).value === '1'}
 							></input>
 							<h2 class="feature">{this.audioLabel}</h2>
-							<input class="harmonics"
-								type="number"
-								min={1}
-								max={Math.floor(10000 / this.FUNDAMENTAL)}
-								step={1}
-								value={this.harmonics}
-								onChange={event => this.harmonics = Number((event.currentTarget as HTMLInputElement).value)}
-							></input>
-							<h2 class="feature">Harmonics</h2>
+							{this.minHarmonics < this.maxHarmonics && [
+								<input class="harmonics"
+									type="number"
+									min={this.minHarmonics}
+									max={this.maxHarmonics}
+									value={this.harmonics}
+									onChange={event => this.harmonics = Number((event.currentTarget as HTMLInputElement).value)}
+								></input>,
+								<h2 class="feature">Harmonics</h2>
+							]}
 						</div>
 					</div>
 					<div class="controls">
@@ -478,10 +541,29 @@ export class FourierSynth {
 								{Object.keys(this._data).map(id => id.startsWith('sin') && row(id))}
 							</div>
 						</div>
+						<div class="row volume">
+							<label class="label" htmlFor="volume">{this.volumeLabel}</label>
+							<input class="slider"
+								id="volume"
+								name="volume"
+								type="range"
+								min={0}
+								max={10}
+								step={0.01}
+								value={this.volume}
+								onInput={event => this.volume = Number((event.currentTarget as HTMLInputElement).value)}
+							></input>
+							<input class="field"
+								readonly
+								name="volume"
+								value={`${this._volumeFormatter.format(20*Math.log10((Math.pow(this.SCALE, this.volume/this.SCALE) - 1) / ((this.SCALE - 1) / 2)))}dB`}
+							></input>
+							<button class="clear" onClick={() => this.volume = this.VOLUME_DEFAULT}>X</button>
+						</div>
 						<button class="reset" onClick={() => this._resetData()}>Reset</button>
 					</div>
 					<div class="graph">
-						<canvas ref={el => this._canvas = el}>Fourier graph appears here when JavaScript is enabled</canvas>
+						<canvas ref={el => this._canvas = el}></canvas>
 					</div>
 				</div>
 			</Host>
