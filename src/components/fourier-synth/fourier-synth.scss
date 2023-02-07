@@ -17,6 +17,7 @@
 	.controls {
 		display: flex;
 		flex-direction: column;
+		align-items: stretch;
 		margin: 16px 0;
 		padding: 16px;
 		border: 2px solid #999;
@@ -37,41 +38,63 @@
 	}
 
 	.column {
-		width: 50%;
+		width: 100%;
 		display: flex;
 		flex-direction: column;
+		align-items: stretch;
 	}
 
 	.row {
 		line-height: 24px;
+		// height: 24px;
+		justify-content: stretch;
 	}
 
 	.row, .header {
 		display: flex;
 		justify-content: stretch;
-		align-items: baseline;
+		align-items: end;
 	}
 
 	.header .row {
 		line-height: 32px;
 	}
 
-	.label {
+	.label, .harmonic-frequency {
 		height: 24px;
+	}
+
+	.frequencies {
+		width: auto;
+		box-sizing: border-box;
+		margin: 0 16px;
+		padding: 0 16px;
+		border-left: 2px solid #999;
+		border-right: 2px solid #999;
+	}
+
+	.harmonic-frequency {
+		justify-self: flex-end;
 	}
 
 	.slider {
 		width: 100%;
 	}
 
-	.slider, .toggle, .harmonics {
+	.slider, .toggle, .frequency, .harmonics {
 		align-self: center;
+	}
+
+	.frequency, .harmonics, .harmonic-frequency {
+		text-align: right;
+	}
+
+	.frequency {
+		width: 64px;
 	}
 
 	.harmonics {
 		width: 40px;
-		margin-left: 32px;
-		text-align: right;
 	}
 
 	.field {
@@ -81,6 +104,9 @@
 
 	.volume {
 		margin-top: 16px;
+		.field {
+			width: 56px;
+		}
 	}
 
 	.clear {
@@ -90,12 +116,18 @@
 		text-align: center;
 	}
 
-	.feature, .slider {
-		margin: 0 8px;
+	.feature {
+		margin: 0 8px 0 0;
+		&:not(:first-child) {
+			margin-left: 24px;
+		}
+		&::after {
+			content: ':'
+		}
 	}
 
-	.first-column {
-		margin-right: 32px;
+	.slider {
+		margin: 0 8px;
 	}
 
 	.label::after {
@@ -106,6 +138,14 @@
 		height: 100%;
 		canvas {
 			width: 100%;
+		}
+	}
+
+	.grid{
+		display: grid;
+		grid-template-columns: 24px calc(100% - 24px - 48px - 24px) 48px 24px;
+		.label, .slider, .field, .clear {
+			width: auto;
 		}
 	}
 
