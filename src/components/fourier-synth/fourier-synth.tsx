@@ -5,6 +5,15 @@ export interface FourierData {
 	value: number
 }
 
+/**
+ * The Fourier Synthesizer web component is an interactive waveform and sound generator based on Fourier synthesis.
+ *
+ * ## Layout
+ * The size of the synthesizer will by default be as large as possible within the web page. You can use CSS width and height properties and/or page layout to control the size if necessary.
+ * ```html
+ * <fourier-synth style="width: 800px;"></fourier-synth>
+ * ```
+ */
 @Component({
 	tag: 'fourier-synth',
 	styleUrl: 'fourier-synth.scss',
@@ -14,10 +23,8 @@ export class FourierSynth {
 
 	// constants
 	private readonly CONTROL_RANGE: number = 50.0;
-	private readonly FREQUENCY_DEFAULT: number = 220;
 	private readonly FREQUENCY_MAX: number = 20000;
 	private readonly FREQUENCY_MIN: number = 20;
-	private readonly HARMONICS_DEFAULT: number = 10;
 	private readonly SCALE: number = 10.0;
 	private readonly VOLUME_DEFAULT: number = 5;
 	// max volume is slightly less than 10 so that when converted dB it is exactly 12
@@ -31,7 +38,7 @@ export class FourierSynth {
 
 	private _audioContext: AudioContext;
 	private _canvas: HTMLCanvasElement;
-	private _data: Record<string, FourierData>;
+	private _data: Record<string, FourierData> = {};
 	private _fieldFormatter = Intl.NumberFormat(navigator.language, {minimumFractionDigits: 1, maximumFractionDigits: 1});
 	private _gain: GainNode;
 	private _oscillator: OscillatorNode;
@@ -60,7 +67,7 @@ export class FourierSynth {
 	@State() updates: number = 0;
 
 	/**
-	 *
+	 * Volume is the 0-10 value of the slider that will be converted to gain and displayed in dB.
 	 */
 	@State() volume: number = this.VOLUME_DEFAULT;
 	@Watch('volume')
@@ -75,14 +82,14 @@ export class FourierSynth {
 	@Prop({reflect: true}) audioLabel: string = 'Enable Audio';
 
 	/**
-	 * Color of graph backrgound lines and dots. Use a CSS color value.
+	 * Color of graph background lines and dots. Use a CSS color value.
 	 */
-	@Prop({reflect: true}) axesColor: string = this.BLUE;
+	@Prop() axesColor: string = this.BLUE;
 
 	/**
 	 * Background color of graph. Use a CSS color value.
 	 */
-	@Prop({reflect: true}) backgroundColor: string = this.BLACK;
+	@Prop() backgroundColor: string = this.BLACK;
 
 	/**
 	 * Title text for the cosine controls.
@@ -92,7 +99,7 @@ export class FourierSynth {
 	/**
 	 * The fundamental frequency of the fourier wave.
 	 */
-	@Prop({reflect: true, mutable: true}) fundamental: number = this.FREQUENCY_DEFAULT;
+	@Prop({reflect: true, mutable: true}) fundamental: number = 220;
 	@Watch('fundamental')
 	handleFrequencyChange(newValue: number) {
 		// apply bounds
@@ -111,9 +118,14 @@ export class FourierSynth {
 	@Prop({reflect: true}) frequencyLabel: string = 'Fundamental';
 
 	/**
+	 * Text for the gain control label.
+	 */
+	@Prop({reflect: true}) gainLabel: string = 'Gain';
+
+	/**
 	 * Number of harmonics to control and produce.
 	 */
-	@Prop({reflect: true, mutable: true}) harmonics: number = this.HARMONICS_DEFAULT;
+	@Prop({reflect: true, mutable: true}) harmonics: number = 8;
 	@Watch('harmonics')
 	handleHarmonicsChange(newValue: number, oldValue: number) {
 		// apply bounds based on frequency
@@ -152,27 +164,32 @@ export class FourierSynth {
 	/**
 	 * Don't display the graph background dots.
 	 */
-	@Prop({reflect: true}) hideDots: boolean = false;
+	@Prop() hideDots: boolean = false;
 
 	/**
 	 * Don't display the wave and vertical axis intersection dots.
 	 */
-	@Prop({reflect: true}) hideIntersections: boolean = false;
+	@Prop() hideIntersections: boolean = false;
 
 	/**
 	 * Don't display the graph background lines.
 	 */
-	@Prop({reflect: true}) hideLines: boolean = false;
+	@Prop() hideLines: boolean = false;
 
 	/**
 	 * Color of the wave and vertical axis intersection dots. Use a CSS color value.
 	 */
-	@Prop({reflect: true}) intersectionColor: string = this.GREEN;
+	@Prop() intersectionColor: string = this.GREEN;
 
 	/**
-	 * Text for the main title.
+	 * Text for the main title. Set empty to exclude the title.
 	 */
-	@Prop({reflect: true}) mainTitle: string = 'Fourier Synthesis';
+	@Prop({reflect: true}) mainTitle: string = 'Fourier Synthesizer';
+
+	/**
+	 * Text for the reset button.
+	 */
+	@Prop({reflect: true}) resetText: string = 'Reset';
 
 	/**
 	 * Title text for the sine controls.
@@ -180,14 +197,9 @@ export class FourierSynth {
 	@Prop({reflect: true}) sinTitle: string = 'Sin';
 
 	/**
-	 * Text for the volume control label.
-	 */
-	@Prop({reflect: true}) volumeLabel: string = 'Volume';
-
-	/**
 	 * Color of graph lines and dots. Use a CSS color value.
 	 */
-	@Prop({reflect: true}) waveColor: string = this.RED;
+	@Prop() waveColor: string = this.RED;
 
 	/**
 	 * Number of waves to display in the graph.
@@ -198,13 +210,7 @@ export class FourierSynth {
 	 * Stencil initialization.
 	 */
 	async componentWillLoad() {
-		// initialize data
-		this._data = {};
-
-		// limit harmins according to fundamental frequency
-		this.harmonics = Math.min(this.harmonics, Math.floor(this.FREQUENCY_MAX / this.fundamental));
-
-		// set data by setting harmonics
+		// initialize data by setting harmonics
 		this.handleHarmonicsChange(this.harmonics, -1);
 	}
 
@@ -520,7 +526,7 @@ export class FourierSynth {
 			return Object.keys(this._data).map(id => {
 				const harmonic = Number(id.substring(3));
 				if (id.startsWith('cos') && harmonic > 0) {
-					return <div class="frequency">{harmonic * this.fundamental}Hz</div>;
+					return <div key={`frequency-${harmonic}`} class="frequency">{harmonic * this.fundamental}Hz</div>;
 				}
 			}
 		)};
@@ -530,7 +536,7 @@ export class FourierSynth {
 				<div class="container">
 					{this.mainTitle && <h1>{this.mainTitle}</h1>}
 					<div class="header">
-						<h2 class="feature">{this.frequencyLabel}</h2>
+						<label><h2 class="feature">{this.frequencyLabel}</h2></label>
 						<input class="fundamental"
 							type="number"
 							min={this.FREQUENCY_MIN}
@@ -539,6 +545,7 @@ export class FourierSynth {
 							onChange={event => this.fundamental = Number((event.currentTarget as HTMLInputElement).value)}
 							onInput={event => this._onFrequencyInput(Number((event.currentTarget as HTMLInputElement).value))}
 						></input>
+						<span class="hz">Hz</span>
 						<h2 class="feature">{this.harmonicsLabel}</h2>
 						<input class="harmonics"
 							type="number"
@@ -577,7 +584,7 @@ export class FourierSynth {
 							</div>
 						</div>
 						<div class="row volume">
-							<label class="label" htmlFor="volume">{this.volumeLabel}</label>
+							<label class="label" htmlFor="volume">{this.gainLabel}</label>
 							<input class="slider"
 								type="range"
 								min={0}

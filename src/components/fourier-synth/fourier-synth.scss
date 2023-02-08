@@ -10,11 +10,14 @@
 		align-items: stretch;
 	}
 
+	.header {
+		justify-content: flex-start;
+		align-items: end;
+	}
+
 	.header,
 	.row {
 		display: flex;
-		justify-content: stretch;
-		align-items: end;
 	}
 
 	h2 {
@@ -37,6 +40,11 @@
 
 	.fundamental {
 		width: 64px;
+		padding-right: 24px;
+	}
+
+	.hz{
+		margin-left: -24px;
 	}
 
 	.harmonics {
@@ -48,6 +56,7 @@
 	}
 
 	.fundamental,
+	.hz,
 	.harmonics,
 	.toggle,
 	.slider  {
@@ -72,6 +81,8 @@
 
 	.row {
 		line-height: 24px;
+		justify-content: stretch;
+		align-items: stretch;
 	}
 
 	.column {
@@ -83,8 +94,8 @@
 
 	.grid{
 		display: grid;
-		grid-template-columns: 24px calc(100% - 24px - 48px - 24px) 48px 24px;
-		.label, .slider, .field, .clear {
+		grid-template-columns: 24px calc(100% - 24px - 48px - 20px) 48px 20px;
+		.label, .slider, .field {
 			width: auto;
 		}
 	}
@@ -114,7 +125,8 @@
 	}
 
 	.clear {
-		width: 24px;
+		min-width: 20px;
+		max-width: 20px;
 		padding-left: 0;
 		padding-right: 0;
 		text-align: center;
@@ -127,6 +139,7 @@
 		padding: 0 16px;
 		border-left: 2px solid #999;
 		border-right: 2px solid #999;
+		align-self: flex-end;
 	}
 
 	.frequency {
