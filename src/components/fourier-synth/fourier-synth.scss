@@ -10,8 +10,54 @@
 		align-items: stretch;
 	}
 
-	.header {
-		margin: 0;
+	.header,
+	.row {
+		display: flex;
+		justify-content: stretch;
+		align-items: end;
+	}
+
+	h2 {
+		display: inline;
+		margin: 0 8px 8px 0;
+	}
+
+	.feature {
+		margin: 0 8px 0 0;
+
+		&:not(:first-child) {
+			margin-left: 24px;
+		}
+	}
+
+	.feature::after,
+	.label::after  {
+		content: ':';
+	}
+
+	.fundamental {
+		width: 64px;
+	}
+
+	.harmonics {
+		width: 40px;
+	}
+
+	.toggle {
+		width: 32px;
+	}
+
+	.fundamental,
+	.harmonics,
+	.toggle,
+	.slider  {
+		align-self: center;
+	}
+
+	.fundamental,
+	.harmonics,
+	.frequency {
+		text-align: right;
 	}
 
 	.controls {
@@ -24,17 +70,8 @@
 		border-radius: 8px;
 	}
 
-	.reset {
-		margin-top: 12px;
-	}
-
-	h2 {
-		display: inline;
-		margin: 0 8px 8px 0;
-	}
-
-	.toggle {
-		width: 32px;
+	.row {
+		line-height: 24px;
 	}
 
 	.column {
@@ -44,24 +81,43 @@
 		align-items: stretch;
 	}
 
-	.row {
-		line-height: 24px;
-		// height: 24px;
-		justify-content: stretch;
+	.grid{
+		display: grid;
+		grid-template-columns: 24px calc(100% - 24px - 48px - 24px) 48px 24px;
+		.label, .slider, .field, .clear {
+			width: auto;
+		}
 	}
 
-	.row, .header {
-		display: flex;
-		justify-content: stretch;
-		align-items: end;
-	}
-
-	.header .row {
-		line-height: 32px;
-	}
-
-	.label, .harmonic-frequency {
+	.label,
+	.frequency {
 		height: 24px;
+	}
+
+	.slider {
+		width: 100%;
+		margin: 0 8px;
+	}
+
+	.field {
+		width: 40px;
+		text-align: right;
+		appearance: textfield;
+
+		/* get rid of the spin buttons on the number inputs */
+		&::-webkit-outer-spin-button,
+		&::-webkit-inner-spin-button {
+			appearance: none;
+			-webkit-appearance: none;
+			-moz-appearance: none;
+		}
+	}
+
+	.clear {
+		width: 24px;
+		padding-left: 0;
+		padding-right: 0;
+		text-align: center;
 	}
 
 	.frequencies {
@@ -73,89 +129,24 @@
 		border-right: 2px solid #999;
 	}
 
-	.harmonic-frequency {
+	.frequency {
 		justify-self: flex-end;
 	}
 
-	.slider {
-		width: 100%;
-	}
-
-	.slider, .toggle, .frequency, .harmonics {
-		align-self: center;
-	}
-
-	.frequency, .harmonics, .harmonic-frequency {
-		text-align: right;
-	}
-
-	.frequency {
-		width: 64px;
-	}
-
-	.harmonics {
-		width: 40px;
-	}
-
-	.field {
-		width: 40px;
-		text-align: right;
-	}
-
-	.volume {
+	.volume,
+	.reset {
 		margin-top: 16px;
+
 		.field {
 			width: 56px;
 		}
 	}
 
-	.clear {
-		width: 24px;
-		padding-left: 0;
-		padding-right: 0;
-		text-align: center;
-	}
-
-	.feature {
-		margin: 0 8px 0 0;
-		&:not(:first-child) {
-			margin-left: 24px;
-		}
-		&::after {
-			content: ':'
-		}
-	}
-
-	.slider {
-		margin: 0 8px;
-	}
-
-	.label::after {
-		content: ':';
-	}
-
 	.graph {
 		height: 100%;
-		canvas {
-			width: 100%;
-		}
 	}
 
-	.grid{
-		display: grid;
-		grid-template-columns: 24px calc(100% - 24px - 48px - 24px) 48px 24px;
-		.label, .slider, .field, .clear {
-			width: auto;
-		}
+	canvas {
+		width: 100%;
 	}
-
-	/* get rid of the spin buttons on the number inputs */
-	input[type=number].field {
-		appearance: textfield;
-	}
-	input[type=number].field::-webkit-outer-spin-button,
-	input[type=number].field::-webkit-inner-spin-button {
-		appearance: none;
-		-webkit-appearance: none;
-		-moz-appearance: none;
-	}}
+}

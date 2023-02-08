@@ -12,8 +12,8 @@ export interface FourierData {
 })
 export class FourierSynth {
 
-	// self-descriptive constants
-	private readonly CONTROL_RANGE: number = 50;
+	// constants
+	private readonly CONTROL_RANGE: number = 50.0;
 	private readonly FREQUENCY_DEFAULT: number = 220;
 	private readonly FREQUENCY_MAX: number = 20000;
 	private readonly FREQUENCY_MIN: number = 20;
@@ -285,14 +285,16 @@ export class FourierSynth {
 			const cos = new Float32Array(this.harmonics + 1);
 			const sin = new Float32Array(this.harmonics + 1);
 			sin[0] = 0;
-			Object.keys(this._data).forEach(id => {
+			Object.entries(this._data).forEach(entry => {
+				const id = entry[0];
 				const isCos = id.startsWith('cos');
 				const harmonic = Number(id.substring(3));
+				const value = entry[1].value / this.CONTROL_RANGE;
 				if (isCos) {
-					cos[harmonic] = this._data[id].value / this.CONTROL_RANGE;
+					cos[harmonic] = value;
 				}
 				else if (harmonic > 0) {
-					sin[harmonic] = this._data[id].value / this.CONTROL_RANGE;
+					sin[harmonic] = value;
 				}
 			});
 
@@ -439,8 +441,8 @@ export class FourierSynth {
 		else {
 			// reset all
 			this.volume = this.VOLUME_DEFAULT;
-			Object.keys(this._data).forEach(id => {
-				this._data[id].value = 0;
+			Object.values(this._data).forEach(data => {
+				data.value = 0;
 			});
 		}
 
@@ -494,7 +496,6 @@ export class FourierSynth {
 			return [
 				<label key={`label${id}`} class="label" htmlFor={id} innerHTML={control.label}></label>,
 				<input key={`slider${id}`} class="slider"
-					id={id}
 					type="range"
 					min={-this.CONTROL_RANGE}
 					max={this.CONTROL_RANGE}
@@ -518,8 +519,8 @@ export class FourierSynth {
 		const frequencies = () => {
 			return Object.keys(this._data).map(id => {
 				const harmonic = Number(id.substring(3));
-				if (id.startsWith('sin') && harmonic > 0) {
-					return <div class="harmonic-frequency">{harmonic * this.fundamental}Hz</div>;
+				if (id.startsWith('cos') && harmonic > 0) {
+					return <div class="frequency">{harmonic * this.fundamental}Hz</div>;
 				}
 			}
 		)};
@@ -529,34 +530,32 @@ export class FourierSynth {
 				<div class="container">
 					{this.mainTitle && <h1>{this.mainTitle}</h1>}
 					<div class="header">
-						<div class="row">
-							<h2 class="feature">{this.frequencyLabel}</h2>
-							<input class="frequency"
-								type="number"
-								min={this.FREQUENCY_MIN}
-								max={Math.floor(this.FREQUENCY_MAX / this.harmonics)}
-								value={this.fundamental}
-								onChange={event => this.fundamental = Number((event.currentTarget as HTMLInputElement).value)}
-								onInput={event => this._onFrequencyInput(Number((event.currentTarget as HTMLInputElement).value))}
-							></input>
-							<h2 class="feature">{this.harmonicsLabel}</h2>
-							<input class="harmonics"
-								type="number"
-								min={1}
-								max={Math.floor(this.FREQUENCY_MAX / this.fundamental)}
-								value={this.harmonics}
-								onChange={event => this.harmonics = this._checkHarmonicsBounds(Number((event.currentTarget as HTMLInputElement).value))}
-							></input>
-							<h2 class="feature">{this.audioLabel}</h2>
-							<input class={{'toggle': true, 'toggle-on': this.enableAudio}}
-								type="range"
-								min={0}
-								max={1}
-								step={1}
-								value={this.enableAudio ? 1 : 0}
-								onInput={event => this.enableAudio = (event.currentTarget as HTMLInputElement).value === '1'}
-							></input>
-						</div>
+						<h2 class="feature">{this.frequencyLabel}</h2>
+						<input class="fundamental"
+							type="number"
+							min={this.FREQUENCY_MIN}
+							max={Math.floor(this.FREQUENCY_MAX / this.harmonics)}
+							value={this.fundamental}
+							onChange={event => this.fundamental = Number((event.currentTarget as HTMLInputElement).value)}
+							onInput={event => this._onFrequencyInput(Number((event.currentTarget as HTMLInputElement).value))}
+						></input>
+						<h2 class="feature">{this.harmonicsLabel}</h2>
+						<input class="harmonics"
+							type="number"
+							min={1}
+							max={Math.floor(this.FREQUENCY_MAX / this.fundamental)}
+							value={this.harmonics}
+							onChange={event => this.harmonics = this._checkHarmonicsBounds(Number((event.currentTarget as HTMLInputElement).value))}
+						></input>
+						<h2 class="feature">{this.audioLabel}</h2>
+						<input class={{'toggle': true, 'toggle-on': this.enableAudio}}
+							type="range"
+							min={0}
+							max={1}
+							step={1}
+							value={this.enableAudio ? 1 : 0}
+							onInput={event => this.enableAudio = (event.currentTarget as HTMLInputElement).value === '1'}
+						></input>
 					</div>
 					<div class="controls">
 						<div class="row">
@@ -580,7 +579,6 @@ export class FourierSynth {
 						<div class="row volume">
 							<label class="label" htmlFor="volume">{this.volumeLabel}</label>
 							<input class="slider"
-								id="volume"
 								type="range"
 								min={0}
 								max={this.VOLUME_MAX}
