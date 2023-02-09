@@ -21,6 +21,7 @@ The size of the synthesizer will by default be as large as possible within the w
 ### 1. Basic
 
 Only a `<fourier-synth>` element is required to use the component. Because JavaScript is required, a placeholder message can be placed inside the element to alert users that haven't enabled JavaScript.
+
 ```html
 <fourier-synth>Please enable JavaScript to use Fourier Synthesizer</fourier-synth>
 ```
@@ -28,22 +29,23 @@ Only a `<fourier-synth>` element is required to use the component. Because JavaS
 
 ### 2. Advanced
 
-Control over most features is provided through properties that are set as attributes on the `<fourier-synth>` element.
+Control over most features is provided through properties that are set through the attributes of the `<fourier-synth>` element.
+
 ```html
 <fourier-synth
 	audio-label="Enable Audio"
 	axes-color="rgb(0, 127, 255)"
 	background-color="rgb(0, 0, 0)"
 	cos-title="Cos"
+	endpoint-color="rgb(0, 255, 0)"
 	fundamental="220"
-	frequency-label="Fundamental"
+	fundamental-label="Fundamental"
 	gain-label="Gain"
-	harmonics="10"
+	harmonics="8"
 	harmonics-label="Harmonics"
 	hide-dots
-	hide-intersections
+	hide-endpoints
 	hide-lines
-	intersection-color="rgb(0, 255, 0)"
 	main-title="Fourier Synthesis"
 	reset-text="Reset"
 	sin-title="Sin"
@@ -56,26 +58,26 @@ Control over most features is provided through properties that are set as attrib
 
 ## Properties
 
-| Property            | Attribute            | Description                                                                     | Type      | Default                  |
-| ------------------- | -------------------- | ------------------------------------------------------------------------------- | --------- | ------------------------ |
-| `audioLabel`        | `audio-label`        | Label text for the "Enable Audio" toggle switch.                                | `string`  | `'Enable Audio'`         |
-| `axesColor`         | `axes-color`         | Color of graph background lines and dots. Use any CSS color value.              | `string`  | `this.BLUE`              |
-| `backgroundColor`   | `background-color`   | Background color of graph. Use any CSS color value.                             | `string`  | `this.BLACK`             |
-| `cosTitle`          | `cos-title`          | Title text for the cosine controls.                                             | `string`  | `'Cos'`                  |
-| `frequencyLabel`    | `frequency-label`    | Label for the frequency control.                                                | `string`  | `'Fundamental'`          |
-| `fundamental`       | `fundamental`        | The fundamental frequency of the fourier wave.                                  | `number`  | `220`                    |
-| `gainLabel`         | `gain-label`         | Text for the gain control label.                                                | `string`  | `'Gain'`                 |
-| `harmonics`         | `harmonics`          | Number of harmonics to control and produce.                                     | `number`  | `8`                      |
-| `harmonicsLabel`    | `harmonics-label`    | Label for the harmonics control.                                                | `string`  | `'Harmonics'`            |
-| `hideDots`          | `hide-dots`          | Don't display the graph background dots.                                        | `boolean` | `false`                  |
-| `hideIntersections` | `hide-intersections` | Don't display the wave and vertical axis intersection dots.                     | `boolean` | `false`                  |
-| `hideLines`         | `hide-lines`         | Don't display the graph background lines.                                       | `boolean` | `false`                  |
-| `intersectionColor` | `intersection-color` | Color of the wave and vertical axis intersection dots. Use any CSS color value. | `string`  | `this.GREEN`             |
-| `mainTitle`         | `main-title`         | Text for the main title. Set empty to exclude the title.                        | `string`  | `'Fourier Synthesizer'`  |
-| `resetText`         | `reset-text`         | Text for the reset button.                                                      | `string`  | `'Reset'`                |
-| `sinTitle`          | `sin-title`          | Title text for the sine controls.                                               | `string`  | `'Sin'`                  |
-| `waveColor`         | `wave-color`         | Color of graph lines and dots. Use any CSS color value.                         | `string`  | `this.RED`               |
-| `waveCount`         | `wave-count`         | Number of waves to display in the graph.                                        | `number`  | `3`                      |
+| Property           | Attribute           | Description                                                      | Type      | Default                 |
+| ------------------ | ------------------- | ---------------------------------------------------------------- | --------- | ----------------------- |
+| `audioLabel`       | `audio-label`       | Label text for the "Enable Audio" toggle switch.                 | `string`  | `'Enable Audio'`        |
+| `axesColor`        | `axes-color`        | Color of graph background lines and dots. Use a CSS color value. | `string`  | `this.BLUE`             |
+| `backgroundColor`  | `background-color`  | Background color of graph. Use a CSS color value.                | `string`  | `this.BLACK`            |
+| `cosTitle`         | `cos-title`         | Title text for the cosine controls.                              | `string`  | `'Cos'`                 |
+| `endpointColor`    | `endpoint-color`    | Color of the wave endpoint dots. Use a CSS color value.          | `string`  | `this.GREEN`            |
+| `fundamental`      | `fundamental`       | The fundamental frequency of the fourier wave.                   | `number`  | `220`                   |
+| `fundamentalLabel` | `fundamental-label` | Label for the fundamental control.                               | `string`  | `'Fundamental'`         |
+| `gainLabel`        | `gain-label`        | Text for the gain control label.                                 | `string`  | `'Gain'`                |
+| `harmonics`        | `harmonics`         | Number of harmonics to control and produce.                      | `number`  | `8`                     |
+| `harmonicsLabel`   | `harmonics-label`   | Label for the harmonics control.                                 | `string`  | `'Harmonics'`           |
+| `hideDots`         | `hide-dots`         | Don't display the graph background dots.                         | `boolean` | `false`                 |
+| `hideEnpoints`     | `hide-enpoints`     | Don't display the wave endpoint dots.                            | `boolean` | `false`                 |
+| `hideLines`        | `hide-lines`        | Don't display the graph background lines.                        | `boolean` | `false`                 |
+| `mainTitle`        | `main-title`        | Text for the main title. Set empty to exclude the title.         | `string`  | `'Fourier Synthesizer'` |
+| `resetText`        | `reset-text`        | Text for the reset button.                                       | `string`  | `'Reset'`               |
+| `sinTitle`         | `sin-title`         | Title text for the sine controls.                                | `string`  | `'Sin'`                 |
+| `waveColor`        | `wave-color`        | Color of graph lines and dots. Use a CSS color value.            | `string`  | `this.RED`              |
+| `waveCount`        | `wave-count`        | Number of waves to display in the graph.                         | `number`  | `3`                     |
 
 
 ----------------------------------------------

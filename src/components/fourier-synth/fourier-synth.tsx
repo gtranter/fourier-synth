@@ -25,10 +25,7 @@ export class FourierSynth {
 	private readonly CONTROL_RANGE: number = 50.0;
 	private readonly FREQUENCY_MAX: number = 20000;
 	private readonly FREQUENCY_MIN: number = 20;
-	private readonly SCALE: number = 10.0;
-	private readonly VOLUME_DEFAULT: number = 5;
-	// max volume is slightly less than 10 so that when converted dB it is exactly 12
-	private readonly VOLUME_MAX: number = 9.98;
+	private readonly GAIN_MAX: number = 1.0;
 
 	// color constants
 	private readonly BLACK: string = 'rgb(0, 0, 0)';
@@ -43,7 +40,7 @@ export class FourierSynth {
 	private _gain: GainNode;
 	private _oscillator: OscillatorNode;
 	private _renderer: CanvasRenderingContext2D;
-	private _volumeFormatter = Intl.NumberFormat(navigator.language, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+	private _gainFormatter = Intl.NumberFormat(navigator.language, {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
 	@Element() hostElement: HTMLFourierSynthElement;
 
@@ -67,13 +64,14 @@ export class FourierSynth {
 	@State() updates: number = 0;
 
 	/**
-	 * Volume is the 0-10 value of the slider that will be converted to gain and displayed in dB.
+	 * Gain is the 0-1 value of the slider that will be converted to logarithmic gain and displayed in dB.
 	 */
-	@State() volume: number = this.VOLUME_DEFAULT;
-	@Watch('volume')
-	handleVolumeChange(newValue: number) {
-		this.volume = Math.max(0, Math.min(newValue, this.SCALE));
-		this._update();
+	@State() gain: number = this.GAIN_MAX;
+	@Watch('gain')
+	handleGainChange(newValue: number) {
+		this.gain = Math.max(0, Math.min(newValue, this.GAIN_MAX));
+		this._setAudioGain();
+		this._plot();
 	}
 
 	/**
@@ -97,11 +95,16 @@ export class FourierSynth {
 	@Prop({reflect: true}) cosTitle: string = 'Cos';
 
 	/**
+	 * Color of the wave endpoint dots. Use a CSS color value.
+	 */
+	@Prop() endpointColor: string = this.GREEN;
+
+	/**
 	 * The fundamental frequency of the fourier wave.
 	 */
 	@Prop({reflect: true, mutable: true}) fundamental: number = 220;
 	@Watch('fundamental')
-	handleFrequencyChange(newValue: number) {
+	handleFundamentalChange(newValue: number) {
 		// apply bounds
 		this.fundamental = newValue = Math.max(this.FREQUENCY_MIN, Math.min(newValue, this.FREQUENCY_MAX));
 		// remove harmonics over 20000Hz
@@ -113,9 +116,9 @@ export class FourierSynth {
 	}
 
 	/**
-	 * Label for the frequency control.
+	 * Label for the fundamental control.
 	 */
-	@Prop({reflect: true}) frequencyLabel: string = 'Fundamental';
+	@Prop({reflect: true}) fundamentalLabel: string = 'Fundamental';
 
 	/**
 	 * Text for the gain control label.
@@ -167,19 +170,14 @@ export class FourierSynth {
 	@Prop() hideDots: boolean = false;
 
 	/**
-	 * Don't display the wave and vertical axis intersection dots.
+	 * Don't display the wave endpoint dots.
 	 */
-	@Prop() hideIntersections: boolean = false;
+	@Prop() hideEnpoints: boolean = false;
 
 	/**
 	 * Don't display the graph background lines.
 	 */
 	@Prop() hideLines: boolean = false;
-
-	/**
-	 * Color of the wave and vertical axis intersection dots. Use a CSS color value.
-	 */
-	@Prop() intersectionColor: string = this.GREEN;
 
 	/**
 	 * Text for the main title. Set empty to exclude the title.
@@ -248,13 +246,12 @@ export class FourierSynth {
 	}
 
 	/**
-	 * Convert the volume setting 0-10 to logarithmic gain 0-4.
+	 * Convert the linear gain setting to logarithmic gain 0-1.
 	 * @returns number
 	 */
-	private _getGain(): number {
-		const logStrength = 9;
-		const gain = 4; // equates to 12dB
-		return (Math.pow(logStrength, this.volume / 10) - 1) / ((logStrength - 1) / gain);
+	private _getLogGain(): number {
+		const logStrength = 7;
+		return (Math.pow(logStrength, this.gain) - 1) / (logStrength - 1);
 	}
 
 	/**
@@ -264,7 +261,7 @@ export class FourierSynth {
 	 * correct out of bounds values.
 	 * @param frequency Value of the frequency under edit
 	 */
-	private _onFrequencyInput(frequency: number) {
+	private _onFundamentalInput(frequency: number) {
 		if (this.FREQUENCY_MIN <= frequency && frequency <= this.FREQUENCY_MAX) {
 			this.fundamental = frequency;
 		}
@@ -280,6 +277,7 @@ export class FourierSynth {
 				// first time - set up audio
 				this._audioContext = new AudioContext();
 				this._gain = this._audioContext.createGain();
+				this._setAudioGain();
 				this._oscillator = this._audioContext.createOscillator();
 				this._oscillator.connect(this._gain).connect(this._audioContext.destination);
 				this._oscillator.start();
@@ -308,7 +306,6 @@ export class FourierSynth {
 			this._oscillator.setPeriodicWave(wave);
 
 			// play
-			this._gain.gain.value = (Math.pow(this.SCALE, this.volume / this.SCALE) - 1) / ((this.SCALE - 1) / 2);
 			this._audioContext.resume();
 		}
 	}
@@ -378,11 +375,11 @@ export class FourierSynth {
 		this._renderer.strokeStyle = this.waveColor || this.RED;
 		this._renderer.beginPath();
 
-		const timeBase = wavelength / (2 * Math.PI);
-		const gain = this._getGain();
+		const timeBase = (wavelength / 2) / Math.PI;
+		const gain = this._getLogGain() * 2; // 2 is an arbitrary adjustment for graph visuals
 
 		// y starts at the vertical center +/- DC offset
-		const yBase = maxY / 2 - (this._data.cos0.value * 2);
+		const yCenter = maxY / 2 - (this._data.cos0.value * 2);
 
 		let yFirst = 0;
 		let yPrev = 0;
@@ -398,7 +395,7 @@ export class FourierSynth {
 			}
 
 			// adjust by offset and gain
-			y = yBase + (gain * y);
+			y = yCenter + (gain * y);
 
 			if (x === 0) {
 				yFirst = y;
@@ -416,7 +413,7 @@ export class FourierSynth {
 		this._renderer.closePath();
 
 		// end the waveform
-		this._renderer.fillStyle = this.intersectionColor || this.GREEN;
+		this._renderer.fillStyle = this.endpointColor || this.GREEN;
 		for (let x = 0; x < maxX; x += wavelength) {
 			// finish path between last and first y
 			this._renderer.beginPath();
@@ -425,8 +422,8 @@ export class FourierSynth {
 			this._renderer.stroke();
 			this._renderer.closePath();
 
-			// wave start-stop dots
-			if (!this.hideIntersections) {
+			// wave endpoint dots
+			if (!this.hideEnpoints) {
 				this._renderer.beginPath();
 				this._renderer.arc(x, yPrev, 3, -Math.PI, Math.PI, true);
 				this._renderer.fill();
@@ -446,13 +443,22 @@ export class FourierSynth {
 		}
 		else {
 			// reset all
-			this.volume = this.VOLUME_DEFAULT;
+			this.gain = this.GAIN_MAX;
 			Object.values(this._data).forEach(data => {
 				data.value = 0;
 			});
 		}
 
 		this._update();
+	}
+
+	/**
+	 * Apply the current gain setting to the audio context.
+	 */
+	private _setAudioGain() {
+		if (this._gain) {
+			this._gain.gain.value = this._getLogGain();
+		}
 	}
 
 	/**
@@ -500,7 +506,7 @@ export class FourierSynth {
 		const control = (id: string) => {
 			const control = this._data[id];
 			return [
-				<label key={`label${id}`} class="label" htmlFor={id} innerHTML={control.label}></label>,
+				<label key={`label${id}`} class="label" innerHTML={control.label}></label>,
 				<input key={`slider${id}`} class="slider"
 					type="range"
 					min={-this.CONTROL_RANGE}
@@ -536,14 +542,14 @@ export class FourierSynth {
 				<div class="container">
 					{this.mainTitle && <h1>{this.mainTitle}</h1>}
 					<div class="header">
-						<label><h2 class="feature">{this.frequencyLabel}</h2></label>
+						<label><h2 class="feature">{this.fundamentalLabel}</h2></label>
 						<input class="fundamental"
 							type="number"
 							min={this.FREQUENCY_MIN}
 							max={Math.floor(this.FREQUENCY_MAX / this.harmonics)}
 							value={this.fundamental}
 							onChange={event => this.fundamental = Number((event.currentTarget as HTMLInputElement).value)}
-							onInput={event => this._onFrequencyInput(Number((event.currentTarget as HTMLInputElement).value))}
+							onInput={event => this._onFundamentalInput(Number((event.currentTarget as HTMLInputElement).value))}
 						></input>
 						<span class="hz">Hz</span>
 						<h2 class="feature">{this.harmonicsLabel}</h2>
@@ -583,21 +589,21 @@ export class FourierSynth {
 								</div>
 							</div>
 						</div>
-						<div class="row volume">
-							<label class="label" htmlFor="volume">{this.gainLabel}</label>
+						<div class="row gain">
+							<label class="label">{this.gainLabel}</label>
 							<input class="slider"
 								type="range"
 								min={0}
-								max={this.VOLUME_MAX}
-								step={0.01}
-								value={this.volume}
-								onInput={event => this.volume = Number((event.currentTarget as HTMLInputElement).value)}
+								max={this.GAIN_MAX}
+								step={0.001}
+								value={this.gain}
+								onInput={event => this.gain = Number((event.currentTarget as HTMLInputElement).value)}
 							></input>
 							<input class="field"
 								readonly
-								value={`${this._volumeFormatter.format(20*Math.log10(this._getGain()))}dB`}
+								value={`${this._gainFormatter.format(20*Math.log10(this._getLogGain()))}dB`}
 							></input>
-							<button class="clear" onClick={() => this.volume = this.VOLUME_DEFAULT}>X</button>
+							<button class="clear" onClick={() => this.gain = this.GAIN_MAX}>X</button>
 						</div>
 						<button class="reset" onClick={() => this._resetData()}>Reset</button>
 					</div>
