@@ -26,7 +26,6 @@ export class FourierSynth {
 	private readonly FREQUENCY_MAX: number = 20000;
 	private readonly FREQUENCY_MIN: number = 20;
 	private readonly GAIN_MAX: number = 1.0;
-	private readonly PERIODS_MAX: number = 5;
 
 	// color constants
 	private readonly BLACK: string = 'rgb(0, 0, 0)';
@@ -65,22 +64,22 @@ export class FourierSynth {
 	@State() updates: number = 0;
 
 	/**
-	 * Gain is the 0-1 value of the slider that will be converted to logarithmic gain and displayed in dB.
+	 * Gain is the 0-1 value of the slider that will be displayed in dB.
 	 */
 	@State() gain: number = this.GAIN_MAX;
 	@Watch('gain')
 	handleGainChange(newValue: number) {
-		this.gain = Math.max(0, Math.min(newValue, this.GAIN_MAX));
+		this.gain = newValue = Math.max(0, Math.min(newValue, this.GAIN_MAX));
 		if (this._gain) {
-			this._gain.gain.value = this.gain;
+			this._gain.gain.value = newValue;
 		}
 		this._plot();
 	}
 
 	/**
-	 * Label text for the "Enable Audio" toggle switch.
+	 * Text for the enable audio control label.
 	 */
-	@Prop({reflect: true}) audioLabel: string = 'Enable Audio';
+	@Prop({reflect: true}) audioLabel: string = 'Enable audio';
 
 	/**
 	 * Color of graph background lines and dots. Use a CSS color value.
@@ -98,12 +97,17 @@ export class FourierSynth {
 	@Prop({reflect: true}) cosTitle: string = 'Cos';
 
 	/**
+	 * Text for the dividers display control label. Set the text empty to hide the control.
+	 */
+	@Prop({reflect: true}) dividersLabel: string = 'Dividers';
+
+	/**
 	 * Color of the wave endpoint dots. Use a CSS color value.
 	 */
 	@Prop() endpointColor: string = this.GREEN;
 
 	/**
-	 * Text for the endpoints display control label.
+	 * Text for the endpoints display control label. Set the text empty to hide the control.
 	 */
 	@Prop({reflect: true}) endpointsLabel: string = 'Endpoints';
 
@@ -124,7 +128,7 @@ export class FourierSynth {
 	}
 
 	/**
-	 * Label for the fundamental control.
+	 * Text for the fundamental control label. Set the text empty to hide the control.
 	 */
 	@Prop({reflect: true}) fundamentalLabel: string = 'Fundamental';
 
@@ -136,12 +140,12 @@ export class FourierSynth {
 	/**
 	 * Text for the graph display control label.
 	 */
-	@Prop({reflect: true}) graphLabel: string = 'Show Graph';
+	@Prop({reflect: true}) graphLabel: string = 'Show graph';
 
 	/**
-	 * Text for the grid dots display control label.
+	 * Text for the grid dots display control label. Set the text empty to hide the control.
 	 */
-	@Prop({reflect: true}) gridDotsLabel: string = 'Grid Dots';
+	@Prop({reflect: true}) gridDotsLabel: string = 'Grid dots';
 
 	/**
 	 * Number of harmonics to control and produce.
@@ -178,12 +182,21 @@ export class FourierSynth {
 	}
 
 	/**
-	 * Label for the harmonics control.
+	 * Text for the harmonics control label. Set the text empty to hide the control.
 	 */
 	@Prop({reflect: true}) harmonicsLabel: string = 'Harmonics';
 
 	/**
-	 * Don't display the wave endpoint dots.
+	 * Don't display the fundamental wave divider lines.
+	 */
+	@Prop({mutable: true}) hideDividers: boolean = false;
+	@Watch('hideDividers')
+	handleHideDividersChange() {
+		this._plot();
+	}
+
+	/**
+	 * Don't display the fundamental wave endpoint dots.
 	 */
 	@Prop({mutable: true}) hideEnpoints: boolean = false;
 	@Watch('hideEnpoints')
@@ -210,28 +223,39 @@ export class FourierSynth {
 	}
 
 	/**
-	 * Don't display the graph background lines.
-	 */
-	@Prop({mutable: true}) hideLines: boolean = false;
-	@Watch('hideLines')
-	handleHideLinesChange() {
-		this._plot();
-	}
-
-	/**
-	 * Text for the lines display control label.
-	 */
-	@Prop({reflect: true}) linesLabel: string = 'Lines';
-
-	/**
-	 * Text for the main title. Set empty to exclude the title.
+	 * Text for the main title. Set the text empty to hide the title.
 	 */
 	@Prop({reflect: true}) mainTitle: string = 'Fourier Synthesizer';
 
 	/**
-	 * Color of graph lines and dots. Use a CSS color value.
+	 * The width of the graph plot line.
 	 */
-	@Prop() waveColor: string = this.RED;
+	@Prop({mutable: true}) lineWidth: number = 3;
+	@Watch('lineWidth')
+	handleLineWidthChange(newValue: number) {
+		this.lineWidth = newValue = Math.max(1, Math.min(newValue, 5));
+		this._plot();
+	}
+
+	/**
+	 * Text for the line width control label. Set the text empty to hide the control.
+	 */
+	@Prop({reflect: true}) lineWidthLabel: string = 'Line width';
+
+	/**
+	 * Limit of the number of harmonics. The actual highest possible number of harmonics
+	 * is based on the frequency. The highest possible harmonic frequency is 20000Hz. At
+	 * the lowest fundamental 20Hz there can therefore be up to 1000 harmonics. High values
+	 * can crash, hang, or otherwise bring the browser to a halt. USE WITH CAUTION.
+	 */
+	@Prop() maxHarmonics: number = 100;
+	@Watch('maxHarmonics')
+	handleMaxHarmonicsChange(newValue: number) {
+		this.maxHarmonics = newValue = Math.max(1, Math.min(newValue, 1000));
+		if (newValue < this.harmonics) {
+			this.handleHarmonicsChange(newValue, this.harmonics);
+		}
+	}
 
 	/**
 	 * Number of wave periods to display in the graph. From 1 to 5.
@@ -239,12 +263,12 @@ export class FourierSynth {
 	@Prop({reflect: true, mutable: true}) periods: number = 3;
 	@Watch('periods')
 	handlePeriodsChange(newValue: number) {
-		this.periods = newValue = Math.max(1, Math.min(newValue, this.PERIODS_MAX));
+		this.periods = newValue = Math.max(1, Math.min(newValue, 5));
 		this._plot();
 	}
 
 	/**
-	 * Text for periods control label.
+	 * Text for the periods control label. Set the text empty to hide the control.
 	 */
 	@Prop({reflect: true}) periodsLabel: string = 'Periods';
 
@@ -257,6 +281,11 @@ export class FourierSynth {
 	 * Title text for the sine controls.
 	 */
 	@Prop({reflect: true}) sinTitle: string = 'Sin';
+
+	/**
+	 * Color of graph lines and dots. Use a CSS color value.
+	 */
+	@Prop() waveColor: string = this.RED;
 
 	/**
 	 * Stencil initialization.
@@ -295,12 +324,12 @@ export class FourierSynth {
 	}
 
 	/**
-	 * Check the harmonics value for min and max based on frequency.
+	 * Check the harmonics value for min and max based on frequency and maxHarmonics.
 	 * @param harmonics Number of harmonics
-	 * @returns At least 1 and no more than would stay below 20000Hz
+	 * @returns At least 1 and no more than would stay below 20000Hz - limited by maxHarmonics
 	 */
 	private _checkHarmonicsBounds(harmonics: number): number {
-		return Math.max(1, Math.min(harmonics, Math.floor(this.FREQUENCY_MAX / this.fundamental)));
+		return Math.max(1, Math.min(harmonics, Math.min(Math.floor(this.FREQUENCY_MAX / this.fundamental), this.maxHarmonics)));
 	}
 
 	/**
@@ -396,27 +425,26 @@ export class FourierSynth {
 			for (let x = gridSize; x < maxX; x += gridSize) {
 				for (let y = startY; y < maxY; y += gridSize) {
 					this._renderer.beginPath();
-					this._renderer.arc(x, y, 1, 0, Math.PI * 2, true);
+					this._renderer.arc(x, y, 0.5, 0, Math.PI * 2, true);
 					this._renderer.fill();
 					this._renderer.closePath();
 				}
 			}
 		}
 
-		// draw axes
 		this._renderer.lineWidth = 2;
 		this._renderer.strokeStyle = this.axesColor || this.BLUE;
 		this._renderer.beginPath();
 
-		// horizontal
+		// draw x axis
 		this._renderer.beginPath();
 		this._renderer.moveTo(0, halfY);
 		this._renderer.lineTo(maxX, halfY);
 		this._renderer.stroke();
 		this._renderer.closePath();
 
-		// vertical
-		if (!this.hideLines) {
+		// draw wave divider lines
+		if (!this.hideDividers) {
 			this._renderer.beginPath();
 			for (let x = wavelength; x < maxX; x += wavelength) {
 				this._renderer.moveTo(x, 0);
@@ -428,7 +456,7 @@ export class FourierSynth {
 
 		// draw wave
 
-		this._renderer.lineWidth = 2;
+		this._renderer.lineWidth = this.lineWidth;
 		this._renderer.strokeStyle = this.waveColor || this.RED;
 		this._renderer.beginPath();
 
@@ -544,7 +572,7 @@ export class FourierSynth {
 		const control = (id: string) => {
 			const control = this._data[id];
 			return [
-				<label key={`label${id}`} class="label" innerHTML={control.label}></label>,
+				<label key={`label${id}`} class="control-label" innerHTML={control.label}></label>,
 				<input key={`slider${id}`} class="slider"
 					type="range"
 					min={-this.CONTROL_RANGE}
@@ -580,8 +608,8 @@ export class FourierSynth {
 				<div class="container">
 					{this.mainTitle && <h1>{this.mainTitle}</h1>}
 					<div class="header">
-						<span class="feature-wrap">
-							<h2 class="feature">{this.fundamentalLabel}</h2>
+						{this.fundamentalLabel && <span class="feature-container">
+							<label class="feature-label">{this.fundamentalLabel}</label>
 							<input class="fundamental"
 								type="number"
 								min={this.FREQUENCY_MIN}
@@ -591,19 +619,19 @@ export class FourierSynth {
 								onInput={event => this._onFundamentalInput(Number((event.currentTarget as HTMLInputElement).value))}
 							></input>
 							<span class="hz">Hz</span>
-						</span>
-						<span class="feature-wrap">
-							<h2 class="feature">{this.harmonicsLabel}</h2>
+						</span>}
+						{this.harmonicsLabel && <span class="feature-container">
+							<label class="feature-label">{this.harmonicsLabel}</label>
 							<input class="harmonics"
 								type="number"
 								min={1}
-								max={Math.floor(this.FREQUENCY_MAX / this.fundamental)}
+								max={this._checkHarmonicsBounds(this.maxHarmonics)}
 								value={this.harmonics}
 								onChange={event => this.harmonics = this._checkHarmonicsBounds(Number((event.currentTarget as HTMLInputElement).value))}
 							></input>
-						</span>
-						<span class="feature-wrap">
-							<h2 class="feature">{this.audioLabel}</h2>
+						</span>}
+						<span class="feature-container">
+							<label class="feature-label">{this.audioLabel}</label>
 							<input class="toggle"
 								type="range"
 								min={0}
@@ -617,8 +645,8 @@ export class FourierSynth {
 					<div class="controls">
 						<div class="row">
 							<div class="column">
-								<h2>{this.cosTitle}</h2>
-								<div class="grid">
+								<label class="column-label">{this.cosTitle}</label>
+								<div class="control-grid">
 									{Object.keys(this._data).map(id => id.startsWith('cos') && control(id))}
 								</div>
 							</div>
@@ -626,15 +654,15 @@ export class FourierSynth {
 								{frequencies()}
 							</div>
 							<div class="column">
-								<h2>{this.sinTitle}</h2>
+								<label class="column-label">{this.sinTitle}</label>
 								<div class="row">&nbsp;</div>{/* spacer row */}
-								<div class="grid">
+								<div class="control-grid">
 									{Object.keys(this._data).map(id => id.startsWith('sin') && control(id))}
 								</div>
 							</div>
 						</div>
 						<div class="row gain">
-							<label class="label">{this.gainLabel}</label>
+							<label class="control-label">{this.gainLabel}</label>
 							<input class="slider"
 								type="range"
 								min={0}
@@ -651,9 +679,9 @@ export class FourierSynth {
 						</div>
 						<button class="reset" onClick={() => this._resetData()}>Reset</button>
 					</div>
-					<div class="header">
-						<span class="feature-wrap">
-							<h2 class="feature">{this.graphLabel}</h2>
+					{(this.graphLabel || this.periodsLabel || this.dividersLabel || this.endpointsLabel || this.gridDotsLabel) && <div class="header">
+						{this.graphLabel && <span class="feature-container">
+							<label class="feature-label">{this.graphLabel}</label>
 							<input class="toggle" title="Show the Fourier waveform graph"
 								type="range"
 								min={0}
@@ -662,41 +690,30 @@ export class FourierSynth {
 								value={this.hideGraph ? 0 : 1}
 								onInput={event => this.hideGraph = (event.currentTarget as HTMLInputElement).value === '0'}
 							></input>
-						</span>
-						<span class="feature-wrap">
-							<h2 class="feature">{this.periodsLabel}</h2>
-							<input class="periods" title="Number of fundamental wave periods to display"
+						</span>}
+						{this.periodsLabel && <span class="feature-container">
+							<label class="feature-label">{this.periodsLabel}</label>
+							<input class="number" title="Number of fundamental wave periods to display"
 								type="number"
 								min={1}
-								max={this.PERIODS_MAX}
+								max={5}
 								value={this.periods}
 								onChange={event => this.periods = Number((event.currentTarget as HTMLInputElement).value)}
 							></input>
-						</span>
-						<span class="feature-wrap">
-							<h2 class="feature">{this.gridDotsLabel}</h2>
-							<input class="toggle" title="Draw the harmonic grid dots on the graph"
+						</span>}
+						{this.dividersLabel && <span class="feature-container">
+							<label class="feature-label">{this.dividersLabel}</label>
+							<input class="toggle" title="Draw vertical lines between the fundamental wave periods"
 								type="range"
 								min={0}
 								max={1}
 								step={1}
-								value={this.hideGridDots ? 0 : 1}
-								onInput={event => this.hideGridDots = (event.currentTarget as HTMLInputElement).value === '0'}
+								value={this.hideDividers ? 0 : 1}
+								onInput={event => this.hideDividers = (event.currentTarget as HTMLInputElement).value === '0'}
 							></input>
-						</span>
-						<span class="feature-wrap">
-							<h2 class="feature">{this.linesLabel}</h2>
-							<input class="toggle" title="Draw vertical lines betweenthe fundamental  wave periods"
-								type="range"
-								min={0}
-								max={1}
-								step={1}
-								value={this.hideLines ? 0 : 1}
-								onInput={event => this.hideLines = (event.currentTarget as HTMLInputElement).value === '0'}
-							></input>
-						</span>
-						<span class="feature-wrap">
-							<h2 class="feature">{this.endpointsLabel}</h2>
+						</span>}
+						{this.endpointsLabel && <span class="feature-container">
+							<label class="feature-label">{this.endpointsLabel}</label>
 							<input class="toggle" title="Draw dots where the fundamental wave periods start and stop"
 								type="range"
 								min={0}
@@ -705,8 +722,30 @@ export class FourierSynth {
 								value={this.hideEnpoints ? 0 : 1}
 								onInput={event => this.hideEnpoints = (event.currentTarget as HTMLInputElement).value === '0'}
 							></input>
-						</span>
-					</div>
+						</span>}
+						{this.gridDotsLabel && <span class="feature-container">
+							<label class="feature-label">{this.gridDotsLabel}</label>
+							<input class="toggle" title="Draw the harmonic grid dots on the graph"
+								type="range"
+								min={0}
+								max={1}
+								step={1}
+								value={this.hideGridDots ? 0 : 1}
+								onInput={event => this.hideGridDots = (event.currentTarget as HTMLInputElement).value === '0'}
+							></input>
+						</span>}
+						{this.lineWidthLabel && <span class="feature-container">
+							<label class="feature-label">{this.lineWidthLabel}</label>
+							<input class="number" title="Width of the wave plot line"
+								type="number"
+								min={1}
+								max={5}
+								step={1}
+								value={this.lineWidth}
+								onInput={event => this.lineWidth = Number((event.currentTarget as HTMLInputElement).value)}
+							></input>
+						</span>}
+					</div>}
 					<div class="graph" style={this.hideGraph && {visibility: 'hidden'}}>
 						<canvas ref={el => this._canvas = el}></canvas>
 					</div>
