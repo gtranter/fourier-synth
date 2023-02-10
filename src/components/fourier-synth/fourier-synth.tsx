@@ -26,6 +26,7 @@ export class FourierSynth {
 	private readonly FREQUENCY_MAX: number = 20000;
 	private readonly FREQUENCY_MIN: number = 20;
 	private readonly GAIN_MAX: number = 1.0;
+	private readonly PERIODS_MAX: number = 5;
 
 	// color constants
 	private readonly BLACK: string = 'rgb(0, 0, 0)';
@@ -233,12 +234,12 @@ export class FourierSynth {
 	@Prop() waveColor: string = this.RED;
 
 	/**
-	 * Number of wave periods to display in the graph.
+	 * Number of wave periods to display in the graph. From 1 to 5.
 	 */
 	@Prop({reflect: true, mutable: true}) periods: number = 3;
 	@Watch('periods')
 	handlePeriodsChange(newValue: number) {
-		this.periods = newValue = Math.max(1, Math.min(newValue, 10));
+		this.periods = newValue = Math.max(1, Math.min(newValue, this.PERIODS_MAX));
 		this._plot();
 	}
 
@@ -431,7 +432,7 @@ export class FourierSynth {
 		this._renderer.strokeStyle = this.waveColor || this.RED;
 		this._renderer.beginPath();
 
-		const timeBase = (wavelength / 2.0) / Math.PI;
+		const timeBase = wavelength / (2.0 * Math.PI);
 
 		// scale the y values so that at max gain a single harmonic wave would occupy the full height of the graph
 		const scaleY = halfY / this.CONTROL_RANGE;
@@ -439,53 +440,39 @@ export class FourierSynth {
 		// y starts at the vertical center +/- the scaled DC offset which can be +/- one full wave
 		const yCenter = halfY - (scaleY * this._data.cos0.value);
 
-		let yFirst = 0;
-		let yPrev = 0;
-
-		for (let x = 0; x < wavelength; x++) {
+		let yOrigin;
+		for (let x = 0; x <= maxX; x++) {
 			// start at zero
-			let y = 0;
-
+			let y = 0.0;
+			const xCalc = (x % wavelength) / timeBase;
 			// add fourier series modificationss
 			for (let harmonic = 1; harmonic <= this.harmonics; harmonic++) {
+				const value = harmonic * xCalc;
 				// invert because the canvas is "upside down" relative to graph +/-
-				y -= this._data[`cos${harmonic}`].value * Math.cos(harmonic * x / timeBase);
-				y -= this._data[`sin${harmonic}`].value * Math.sin(harmonic * x / timeBase);
+				y -= this._data[`cos${harmonic}`].value * Math.cos(value);
+				y -= this._data[`sin${harmonic}`].value * Math.sin(value);
 			}
 
 			// adjust by scale, gain, and offset
 			y = y * scaleY * this.gain + yCenter;
 
 			if (x === 0) {
-				yFirst = y;
-				yPrev = y;
+				yOrigin = y
+				this._renderer.moveTo(x, y);
 			}
 			else {
-				// x needs to be 1 pixel to the left otherwise the peaks don't align with the endpoint dots and lines
-				for (let waveStart = x - 1; waveStart <= maxX; waveStart += wavelength) {
-					this._renderer.moveTo(waveStart - 0.5, yPrev);
-					this._renderer.lineTo(waveStart + 0.5, y);
-				}
-				yPrev = y;
+				this._renderer.lineTo(x, y);
 			}
 		}
 		this._renderer.stroke();
 		this._renderer.closePath();
 
-		// end the waveform
-		this._renderer.fillStyle = this.endpointColor || this.GREEN;
-		for (let x = 0; x <= maxX; x += wavelength) {
-			// finish path between last and first y
-			this._renderer.beginPath();
-			this._renderer.moveTo(x - 0.5, yPrev);
-			this._renderer.lineTo(x + 0.5, yFirst);
-			this._renderer.stroke();
-			this._renderer.closePath();
-
-			// wave endpoint dots
-			if (!this.hideEnpoints) {
+		// wave start/end-point dots
+		if (!this.hideEnpoints) {
+			this._renderer.fillStyle = this.endpointColor || this.GREEN;
+			for (let x = 0; x <= maxX; x += wavelength) {
 				this._renderer.beginPath();
-				this._renderer.arc(x, yPrev, 3, -Math.PI, Math.PI, false);
+				this._renderer.arc(x, yOrigin, 3, -Math.PI, Math.PI, false);
 				this._renderer.fill();
 				this._renderer.closePath();
 			}
@@ -681,7 +668,7 @@ export class FourierSynth {
 							<input class="periods" title="Number of fundamental wave periods to display"
 								type="number"
 								min={1}
-								max={10}
+								max={this.PERIODS_MAX}
 								value={this.periods}
 								onChange={event => this.periods = Number((event.currentTarget as HTMLInputElement).value)}
 							></input>
