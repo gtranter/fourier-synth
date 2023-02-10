@@ -1,374 +1,0 @@
- ˛∫æ  -S ˜R ı ¸> ¡J ﬁ « Ê7   28      , ∫ ﬂ Û – Ï3 Ú ÕP5/. ˛ … ◊ √ ˙=	  í	 " |
-  ¢	 ' Ö
- & ì	 " ∞
- ! á	 ' ∑	 ' µ
-  v
- & ®
-  Ø	  ü	 ' Ä
-  ≠
-  ì	 ' Ü	 ' ö	 ' ë	 ' x
-  Ç
-  ∂
- ! ê
-  ú
-  s
- $ o
- $ ä
- & ™
-  }	  
-  ™
-  ñ	 ' ©
-  w
-  ∏
- ! ì
- " ì
-  Å
- # p	 ' ô
- ' ~
-  r	 ' u
-   è
-  û
-  £
- ' •
-  ≥
-  ù	 ' Ñ
-  â	  É
- ! {
- & Æ	 ' t
-   ¥	 " é
- ' õ
- % ì	 ' à	 " ó	 " ã	 ' ¶
-  y	 " ò	 ' ß
-  å	 " §
- ! z
-  ç
-  q ˝) Î ¯ ÿ › Ù ‰ · Œ<KC# ‰'*- ‹BE4 ˚1 Ò ÌD ¬# ÿ º ‘ Ë € ; ’ ⁄ ¸9 ¿F) ø æ Ω' ÿ# ≈A ”1 Ÿ ‡ Œ@ ÿ1@$      I0 ∆A ÃA7" È € Ô% ˘ “ ÿH 1(?@Y      L »N1	A ÍG œ8" Ó$: ª@)v¸â<:§ À  O2A@4      4 ‚M ˜9 ÿ „D& Â TIM_MULT [Ljava/lang/String; (II)V ([B)V start 
-
-
-Ljava/awt/Insets;
- 
-insets
- 
-createImage
- 
-Cosinus:
- 
-drawLine
- 
-java/lang/Math
- \(Ljava/awt/GridBagLayout;Ljava/awt/GridBagConstraints;
-Ljava/awt/Component;
-Ljava/awt/Panel;)V
- 
-ipady
- 
-ipadx
- 
-Sinus:
- 
-4(Ljava/awt/Component;Ljava/awt/GridBagConstraints;)V
- 
-java/lang/StringBuffer
- &(Ljava/lang/String;)Ljava/lang/String;
- 
-getParameter
- 
-fill
- 
-java/awt/GridBagLayout
- 
-[Ljava/awt/Label;
- 
-Ljava/awt/Panel;
- 
-java/awt/Container
- 
-
-
-
-Exceptions
- 
-(II)Ljava/lang/String;
- 
-flush
- 
-green
- 
-Ljava/io/InputStream;
- 
-fourier.java
- 
-java/lang/Object
- 
-<init>
- 
-
-
-
-(I)Ljava/lang/StringBuffer;
- 
-(D)Ljava/lang/StringBuffer;
- 
-[Ljava/awt/Scrollbar;
- 
-weightx (Lsun/audio/AudioData;)V
- 
-:
-  
-java/awt/Graphics
- 
-la_b
- 
-la_a
- 
-getGraphics
- 
-db
- 
-Ljava/awt/Graphics;
- 
-(Ljava/awt/Event;)Z
- 
-Audio ON ConstantValue
- 
-s_b
- 
-s_a
- 
-(I)B
- 
-add java/lang/String
- 
-bg
- 
-sound
- 
-paint
- 
-
-
-
-SourceFile
- 
-target
- 
-java/awt/Event
- 
-java/awt/Component
- 
-dbg
- 
-String
- 
-init
- 
-
-
-
-sin_name
- *(Ljava/awt/Component;)Ljava/awt/Component;
- 	substring
- 
-java/awt/Panel
- 
-plot cos_name
- 
-cos
- 
-java/awt/Image
- 
-LocalVariables
- 	removeAll
- 
-(Ljava/lang/String;)V
- 
-append
- 
-equals
- 
-setText
- 
-(Ljava/awt/LayoutManager;)V
- 
-()[[Ljava/lang/String; (II)Ljava/awt/Image; java/awt/GridBagConstraints
- 
-anchor
- 
-AUDIO
- 
-Ljava/awt/Color;
- 
-bgg
- 
-gbcon
- 
-update
- 
-soundStream
- 
-stop
- 
-destroy
- 	setLayout
- 
-setColor
- (Ljava/lang/Object;)Z
- 
-Ljava/lang/Object;
- 
-java/applet/Applet
- 
-getValue
- 
-toString
- 
-INT_MULT
- 
-int2ulaw
- #sun/audio/ContinuousAudioDataStream
- 
-MAX_AB
- 
-
-
-
-showStatus
- 
-Cosine: / Cosinus: / ...
- 	Audio OFF
- 
-soundOn
- 
-Code
- 
-[I
- 
-(IIII)V
- 
-[B
- 
-(Ljava/awt/Graphics;)V
- 
-handleEvent
- 
-(Ljava/io/InputStream;)V
- 
-player
- 
-(D)D
- ,(Ljava/lang/String;)Ljava/lang/StringBuffer;
- 
-getAppletInf
-o
- 
-sun/audio/AudioPlayer
- 
-()Ljava/lang/String;
- 
-sun/audio/AudioData
- 
-java/awt/Scrollbar
- 
-(Ljava/awt/Event;II)Z
- 
-()V
- gridwidth
- java/awt/Insets 
-()I
- 
-java/awt/Color
- 
-getParameterInfo
- 
-b
- 
-a
- 
-Ljava/lang/String;
- 
-resize
- 
-Z
- 	drawImage
- 
-fourier
-
-
-
-Õfourier.class 96/07/15, Copyright (C) 1996 Manfred Thole
-This program is free software; you can redistribute it and/or modify it
-under the terms of the GNU General Public License as published by the
-Free Software Foundation; either version 2 of the License, or (at your
-option) any later version.
-
-
-
-This program is distributed in the hope that it will be useful, but
-WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-General Public License for more details.
-
-You should have received a copy of the GNU General Public License along
-with this program; if not, write to the Free Software Foundation, Inc.,
-675 Mass Ave, Cambridge, MA 02139, USA.
- 
-
-Lsun/audio/AudioPlayer;
- 
-black
- 
-I
- 
-D
- 
-fillRect
- 
-Ljava/awt/Image;
- 
-length
- 
-sin
- 
-subPanel
- 
-(IIIII)V
- 	mouseDown
- 
-Sine: / Sinus: / ...
- 3(Ljava/awt/Image;IILjava/awt/image/ImageObserver;)Z
- 
-setConstraints
- 
-()Ljava/awt/Graphics;
- 
-repaint
- 
-(Ljava/awt/Color;)V
- 
-java/awt/Label
- 
-
-MAX_ANZ    ' &    A  Á     QA  Á     B  Á    î  πB  Á    ´ 
-;  Á     8"   7"    · Œ    ‡ Œ    È €    Ë €   G œ    ÌD    ‰    „D    Ù ‰    ˜9    ¸9    Ó$    ’    ;     ƒ !        *,+∂ *-,∂ nW±      ˆ1 !  ◊ 	   À**∂ ]µ 0*¥ 0« 	*µ 0*¥ 0∂ D§ **¥ 0∂ ?µ 0**∂ ]µ c*¥ c« 	*µ c*¥ c∂ D§ **¥ c∂ ?µ c**ê »∂ Zµ 5**¥ 5∂ _µ ;*¥ ;≤ (∂ 3*¥ ;ê »∂ I*¥ ;≤ [∂ 3<ß *¥ ;d`d∂ MÑê°ˇÍ=ß *¥ ; » »`∂ MÑ »°ˇË>ß $6ß *¥ ;∂ MÑ
- »°ˇÎÑ
-ê°ˇ€**ê »∂ Zµ /**¥ /∂ _µ ^*¥ ^*¥ 5∂ 1Wª Y∑ 7:*¥ f∂ @ª "Y∑ L:µ h
-µ kµ )µ `µ -ª Y*¥ c∑ =:*¥ f:∂ *∂ nWµ -ª Y*¥ 0∑ =:*¥ f:∂ *∂ nWª Y
-∑ m:ª Y
-∑ m:6ß¨µ -*¥ Rª Yª !Y∑ K∂ l∂ >
-∂ l*¥ i.á îo∂ .∂ \∑ =Sµ dµ e**¥ R2∂ n:	*¥ f:
-	∂ *
-	∂ nW*¥ 9ª Y*¥ i.Œ2∑ XS2µ dµ e**¥ 92∂ n:	*¥ f:
-	∂ *
-	∂ nWö .µ -ª Y∑ =:	*¥ f:
-	∂ *
-	∂ nWß æ*¥ :ª Yª !Y∑ K∂ l∂ >
-∂ l*¥ O.á îo∂ .∂ \∑ =Sµ dµ e**¥ :2∂ n:	*¥ f:
-	∂ *
-	∂ nW*¥ Yª Y*¥ O.Œ2∑ XSµ -2µ dµ e**¥ Y2∂ n:	*¥ f:
-	∂ *
-	∂ nWÑ°˛S*ª Yª Y*¥ H∑ <∑ Qµ 8*∑ P*µ +*¥ fê »∂ F**¥ f∂ nW*êê∂ C±     	 Í !   Ó     ‚ú t;<ß  ˇ< ¢  ldÄ;ß ª`¢  ‡ dldÄ;ß § ‡¢  –`dldÄ;ß ã‡¢  ¿ ‡dldÄ;ß q‡¢  ∞‡d ldÄ;ß W‡¢  †‡d@ldÄ;ß =‡¢  ê‡d ÄldÄ;ß "‡¢  Ä‡d ldÄ;ß  Ä;~ë¨      ˚1 !  4  	  (<=*¥ ^*¥ 5∂ 1W*¥ ^≤ [∂ 3*¥ +ô ≤ 4*¥ 8∂ g>ß ø9*¥ i.á ±oc96ß B*¥ i.á îohá ´o∏ Akc9*¥ O.á îohá ´o∏ Bkc9Ñ°ˇΩ îk †cé6pô *¥ Hl †ké∏ VTö =<ß +6ß *¥ ^d``∂ MÑPê°ˇ‰<ÑP°ˇA*¥ +ô ≤ 4*¥ 8∂ jP6ß *¥ ^d∂ MÑPê°ˇÈ±     I0 !   W     K «¢ *+∑ G¨*¥ +ô ≤ 4*¥ 8∂ g*	∂ 2ß ≤ 4*¥ 8∂ j*∂ 2**¥ +ô ß µ +¨     & Â !   —     ≈+¥ E¡ ô ∏+¥ E¿ ∂ W=>ß ú+¥ E*¥ 92∂ Nô <*¥ iO*¥ R2ª !Y∑ K∂ l∂ >
-∂ l*¥ i.á îo∂ .∂ \∂ 6ß Yô L+¥ E*¥ Y2∂ Nô <*¥ OO*¥ :2ª !Y∑ K∂ l∂ >
-∂ l*¥ O.á îo∂ .∂ \∂ 6ß Ñ°ˇd*∂ U¨*+∑ J¨     % !        
-*∑ P*+∂ a±      Ô% !        +*¥ / »∂ 1W±     1 !        *¥ +ô ≤ 4*¥ 8∂ g±      Ω1 !        *¥ +ô ≤ 4*¥ 8∂ j±     1 !   h     \≤ 4*¥ 8∂ g<ß 0*¥ iO*¥ OO*¥ RS*¥ :S*¥ 9S*¥ YSÑ°ˇ–*¥ f∂ T*∂ T*¥ 5∂ S*¥ /∂ S±     +- !        ∞     6 !   ?     3Ω YΩ YSYSYSSYΩ YSYSYSSL+∞      ÿ1 !   X     L*∑ ,*º
-µ i*º
-µ O*Ω µ R*Ω µ :*Ω µ 9*Ω µ Y*ª %Y∑ bµ f*(ºµ H±          ÷
