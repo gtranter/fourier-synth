@@ -22,10 +22,11 @@ export interface FourierData {
 export class FourierSynth {
 
 	// constants
-	private readonly CONTROL_RANGE: number = 50.0;
+	private readonly CONTROL_RANGE: number = 100.0;
 	private readonly FREQUENCY_MAX: number = 20000;
 	private readonly FREQUENCY_MIN: number = 20;
 	private readonly GAIN_MAX: number = 1.0;
+	private readonly PERIODS_MAX: number = 5;
 
 	// color constants
 	private readonly BLACK: string = 'rgb(0, 0, 0)';
@@ -70,7 +71,9 @@ export class FourierSynth {
 	@Watch('gain')
 	handleGainChange(newValue: number) {
 		this.gain = Math.max(0, Math.min(newValue, this.GAIN_MAX));
-		this._setAudioGain();
+		if (this._gain) {
+			this._gain.gain.value = this.gain;
+		}
 		this._plot();
 	}
 
@@ -100,6 +103,11 @@ export class FourierSynth {
 	@Prop() endpointColor: string = this.GREEN;
 
 	/**
+	 * Text for the endpoints display control label.
+	 */
+	@Prop({reflect: true}) endpointsLabel: string = 'Endpoints';
+
+	/**
 	 * The fundamental frequency of the fourier wave.
 	 */
 	@Prop({reflect: true, mutable: true}) fundamental: number = 220;
@@ -124,6 +132,16 @@ export class FourierSynth {
 	 * Text for the gain control label.
 	 */
 	@Prop({reflect: true}) gainLabel: string = 'Gain';
+
+	/**
+	 * Text for the graph display control label.
+	 */
+	@Prop({reflect: true}) graphLabel: string = 'Show Graph';
+
+	/**
+	 * Text for the grid dots display control label.
+	 */
+	@Prop({reflect: true}) gridDotsLabel: string = 'Grid Dots';
 
 	/**
 	 * Number of harmonics to control and produce.
@@ -165,24 +183,70 @@ export class FourierSynth {
 	@Prop({reflect: true}) harmonicsLabel: string = 'Harmonics';
 
 	/**
-	 * Don't display the graph background dots.
-	 */
-	@Prop() hideDots: boolean = false;
-
-	/**
 	 * Don't display the wave endpoint dots.
 	 */
-	@Prop() hideEnpoints: boolean = false;
+	@Prop({mutable: true}) hideEnpoints: boolean = false;
+	@Watch('hideEnpoints')
+	handleHideEndpointsChange() {
+		this._plot();
+	}
+
+	/**
+	 * Don't display the graph.
+	 */
+	@Prop({mutable: true}) hideGraph: boolean = false;
+	@Watch('hideGraph')
+	handleHideGraphChange() {
+		this._plot();
+	}
+
+	/**
+	 * Don't display the graph background dots.
+	 */
+	@Prop({mutable: true}) hideGridDots: boolean = false;
+	@Watch('hideGridDots')
+	handleHideGridDotsChange() {
+		this._plot();
+	}
 
 	/**
 	 * Don't display the graph background lines.
 	 */
-	@Prop() hideLines: boolean = false;
+	@Prop({mutable: true}) hideLines: boolean = false;
+	@Watch('hideLines')
+	handleHideLinesChange() {
+		this._plot();
+	}
+
+	/**
+	 * Text for the lines display control label.
+	 */
+	@Prop({reflect: true}) linesLabel: string = 'Lines';
 
 	/**
 	 * Text for the main title. Set empty to exclude the title.
 	 */
 	@Prop({reflect: true}) mainTitle: string = 'Fourier Synthesizer';
+
+	/**
+	 * Color of graph lines and dots. Use a CSS color value.
+	 */
+	@Prop() waveColor: string = this.RED;
+
+	/**
+	 * Number of wave periods to display in the graph. From 1 to 5.
+	 */
+	@Prop({reflect: true, mutable: true}) periods: number = 3;
+	@Watch('periods')
+	handlePeriodsChange(newValue: number) {
+		this.periods = newValue = Math.max(1, Math.min(newValue, this.PERIODS_MAX));
+		this._plot();
+	}
+
+	/**
+	 * Text for periods control label.
+	 */
+	@Prop({reflect: true}) periodsLabel: string = 'Periods';
 
 	/**
 	 * Text for the reset button.
@@ -195,21 +259,15 @@ export class FourierSynth {
 	@Prop({reflect: true}) sinTitle: string = 'Sin';
 
 	/**
-	 * Color of graph lines and dots. Use a CSS color value.
-	 */
-	@Prop() waveColor: string = this.RED;
-
-	/**
-	 * Number of waves to display in the graph.
-	 */
-	@Prop({reflect: true}) waveCount: number = 3;
-
-	/**
 	 * Stencil initialization.
 	 */
 	async componentWillLoad() {
 		// initialize data by setting harmonics
 		this.handleHarmonicsChange(this.harmonics, -1);
+
+		this.handleFundamentalChange(this.fundamental);
+
+		this.handlePeriodsChange(this.periods);
 	}
 
 	/**
@@ -246,15 +304,6 @@ export class FourierSynth {
 	}
 
 	/**
-	 * Convert the linear gain setting to logarithmic gain 0-1.
-	 * @returns number
-	 */
-	private _getLogGain(): number {
-		const logStrength = 7;
-		return (Math.pow(logStrength, this.gain) - 1) / (logStrength - 1);
-	}
-
-	/**
 	 * Handle user entering frequency - only trigger update if it is within bounds
 	 * so that the value isn't changed while the user is typing.
 	 * The change event handler will handle update and the property watch will
@@ -271,56 +320,57 @@ export class FourierSynth {
 	 * Generate audio stream from the data.
 	 */
 	private _play() {
-		if (this.enableAudio) {
-
-			if (!this._audioContext) {
-				// first time - set up audio
-				this._audioContext = new AudioContext();
-				this._gain = this._audioContext.createGain();
-				this._setAudioGain();
-				this._oscillator = this._audioContext.createOscillator();
-				this._oscillator.connect(this._gain).connect(this._audioContext.destination);
-				this._oscillator.start();
-			}
-
-			this._oscillator.frequency.value = this.fundamental;
-
-			// generate wave
-			const cos = new Float32Array(this.harmonics + 1);
-			const sin = new Float32Array(this.harmonics + 1);
-			sin[0] = 0;
-			Object.entries(this._data).forEach(entry => {
-				const id = entry[0];
-				const isCos = id.startsWith('cos');
-				const harmonic = Number(id.substring(3));
-				const value = entry[1].value / this.CONTROL_RANGE;
-				if (isCos) {
-					cos[harmonic] = value;
-				}
-				else if (harmonic > 0) {
-					sin[harmonic] = value;
-				}
-			});
-
-			const wave = this._audioContext.createPeriodicWave(cos, sin, { disableNormalization: true });
-			this._oscillator.setPeriodicWave(wave);
-
-			// play
-			this._audioContext.resume();
+		if (!this.enableAudio) {
+			return;
 		}
+		if (!this._audioContext) {
+			// first time - set up audio
+			this._audioContext = new AudioContext();
+			this._gain = this._audioContext.createGain();
+			this._gain.gain.value = this.gain;
+			this._oscillator = this._audioContext.createOscillator();
+			this._oscillator.connect(this._gain).connect(this._audioContext.destination);
+			this._oscillator.start();
+		}
+
+		this._oscillator.frequency.value = this.fundamental;
+
+		// generate wave
+		const cos = new Float32Array(this.harmonics + 1);
+		const sin = new Float32Array(this.harmonics + 1);
+		sin[0] = 0;
+		Object.entries(this._data).forEach(entry => {
+			const id = entry[0];
+			const isCos = id.startsWith('cos');
+			const harmonic = Number(id.substring(3));
+			const value = entry[1].value / this.CONTROL_RANGE;
+			if (isCos) {
+				cos[harmonic] = value;
+			}
+			else if (harmonic > 0) {
+				sin[harmonic] = value;
+			}
+		});
+
+		const wave = this._audioContext.createPeriodicWave(cos, sin, { disableNormalization: true });
+		this._oscillator.setPeriodicWave(wave);
+
+		// play
+		this._audioContext.resume();
 	}
 
 	/**
 	 * Draw the waveform derived from the data.
 	 */
 	private _plot() {
-		if (!this._canvas) {
+		if (!this._canvas || this.hideGraph) {
 			return;
 		}
 
 		// set the canvas size
 		const maxX = this._canvas.offsetWidth;
 		const maxY = this._canvas.offsetHeight;
+		const halfY = maxY / 2;
 		this._canvas.width = maxX;
 		this._canvas.height = maxY;
 
@@ -329,14 +379,18 @@ export class FourierSynth {
 		this._renderer.fillRect(0, 0, maxX, maxY);
 
 		// the length of one waveform in pixels
-		const wavelength = maxX / this.waveCount;
+		const wavelength = maxX / this.periods;
 
 		// draw grid dots
-		if (!this.hideDots) {
-			const gridSize = wavelength / this.harmonics;
+		if (!this.hideGridDots) {
+			let gridSize = wavelength / this.harmonics;
+			// make grid size no smaller than 10, but aligned to wavelength
+			for (let harmonic = this.harmonics - 1; gridSize < 10; harmonic--) {
+				gridSize = wavelength / harmonic;
+			}
 
 			// figure out where to start vertically so that the dot grid is centered
-			const startY = (maxY / 2) % gridSize;
+			const startY = halfY % gridSize;
 
 			this._renderer.fillStyle = this.axesColor || this.BLUE;
 			for (let x = gridSize; x < maxX; x += gridSize) {
@@ -350,17 +404,20 @@ export class FourierSynth {
 		}
 
 		// draw axes
+		this._renderer.lineWidth = 2;
+		this._renderer.strokeStyle = this.axesColor || this.BLUE;
+		this._renderer.beginPath();
+
+		// horizontal
+		this._renderer.beginPath();
+		this._renderer.moveTo(0, halfY);
+		this._renderer.lineTo(maxX, halfY);
+		this._renderer.stroke();
+		this._renderer.closePath();
+
+		// vertical
 		if (!this.hideLines) {
-			this._renderer.lineWidth = 1;
-			this._renderer.strokeStyle = this.axesColor || this.BLUE;
 			this._renderer.beginPath();
-
-			// horizontal
-			const axisY = maxY / 2;
-			this._renderer.moveTo(0, axisY);
-			this._renderer.lineTo(maxX, axisY);
-
-			// vertical
 			for (let x = wavelength; x < maxX; x += wavelength) {
 				this._renderer.moveTo(x, 0);
 				this._renderer.lineTo(x, maxY);
@@ -375,57 +432,47 @@ export class FourierSynth {
 		this._renderer.strokeStyle = this.waveColor || this.RED;
 		this._renderer.beginPath();
 
-		const timeBase = (wavelength / 2) / Math.PI;
-		const gain = this._getLogGain() * 2; // 2 is an arbitrary adjustment for graph visuals
+		const timeBase = wavelength / (2.0 * Math.PI);
 
-		// y starts at the vertical center +/- DC offset
-		const yCenter = maxY / 2 - (this._data.cos0.value * 2);
+		// scale the y values so that at max gain a single harmonic wave would occupy the full height of the graph
+		const scaleY = halfY / this.CONTROL_RANGE;
 
-		let yFirst = 0;
-		let yPrev = 0;
+		// y starts at the vertical center +/- the scaled DC offset which can be +/- one full wave
+		const yCenter = halfY - (scaleY * this._data.cos0.value);
 
-		for (let x = 0; x < wavelength; x++) {
+		let yOrigin;
+		for (let x = 0; x <= maxX; x++) {
 			// start at zero
-			let y = 0;
-
+			let y = 0.0;
+			const xCalc = (x % wavelength) / timeBase;
 			// add fourier series modificationss
 			for (let harmonic = 1; harmonic <= this.harmonics; harmonic++) {
-				y += this._data[`cos${harmonic}`].value * Math.cos(harmonic * x / timeBase);
-				y += this._data[`sin${harmonic}`].value * Math.sin(harmonic * x / timeBase);
+				const value = harmonic * xCalc;
+				// invert because the canvas is "upside down" relative to graph +/-
+				y -= this._data[`cos${harmonic}`].value * Math.cos(value);
+				y -= this._data[`sin${harmonic}`].value * Math.sin(value);
 			}
 
-			// adjust by offset and gain
-			y = yCenter + (gain * y);
+			// adjust by scale, gain, and offset
+			y = y * scaleY * this.gain + yCenter;
 
 			if (x === 0) {
-				yFirst = y;
-				yPrev = y;
+				yOrigin = y
+				this._renderer.moveTo(x, y);
 			}
 			else {
-				for (let waveStart = 0; waveStart < maxX; waveStart += wavelength) {
-					this._renderer.moveTo(waveStart + x - 1, yPrev);
-					this._renderer.lineTo(waveStart + x + 1, y);
-				}
-				yPrev = y;
+				this._renderer.lineTo(x, y);
 			}
 		}
 		this._renderer.stroke();
 		this._renderer.closePath();
 
-		// end the waveform
-		this._renderer.fillStyle = this.endpointColor || this.GREEN;
-		for (let x = 0; x < maxX; x += wavelength) {
-			// finish path between last and first y
-			this._renderer.beginPath();
-			this._renderer.moveTo(x - 1, yPrev);
-			this._renderer.lineTo(x + 1, yFirst);
-			this._renderer.stroke();
-			this._renderer.closePath();
-
-			// wave endpoint dots
-			if (!this.hideEnpoints) {
+		// wave start/end-point dots
+		if (!this.hideEnpoints) {
+			this._renderer.fillStyle = this.endpointColor || this.GREEN;
+			for (let x = 0; x <= maxX; x += wavelength) {
 				this._renderer.beginPath();
-				this._renderer.arc(x, yPrev, 3, -Math.PI, Math.PI, true);
+				this._renderer.arc(x, yOrigin, 3, -Math.PI, Math.PI, false);
 				this._renderer.fill();
 				this._renderer.closePath();
 			}
@@ -450,15 +497,6 @@ export class FourierSynth {
 		}
 
 		this._update();
-	}
-
-	/**
-	 * Apply the current gain setting to the audio context.
-	 */
-	private _setAudioGain() {
-		if (this._gain) {
-			this._gain.gain.value = this._getLogGain();
-		}
 	}
 
 	/**
@@ -542,33 +580,39 @@ export class FourierSynth {
 				<div class="container">
 					{this.mainTitle && <h1>{this.mainTitle}</h1>}
 					<div class="header">
-						<label><h2 class="feature">{this.fundamentalLabel}</h2></label>
-						<input class="fundamental"
-							type="number"
-							min={this.FREQUENCY_MIN}
-							max={Math.floor(this.FREQUENCY_MAX / this.harmonics)}
-							value={this.fundamental}
-							onChange={event => this.fundamental = Number((event.currentTarget as HTMLInputElement).value)}
-							onInput={event => this._onFundamentalInput(Number((event.currentTarget as HTMLInputElement).value))}
-						></input>
-						<span class="hz">Hz</span>
-						<h2 class="feature">{this.harmonicsLabel}</h2>
-						<input class="harmonics"
-							type="number"
-							min={1}
-							max={Math.floor(this.FREQUENCY_MAX / this.fundamental)}
-							value={this.harmonics}
-							onChange={event => this.harmonics = this._checkHarmonicsBounds(Number((event.currentTarget as HTMLInputElement).value))}
-						></input>
-						<h2 class="feature">{this.audioLabel}</h2>
-						<input class={{'toggle': true, 'toggle-on': this.enableAudio}}
-							type="range"
-							min={0}
-							max={1}
-							step={1}
-							value={this.enableAudio ? 1 : 0}
-							onInput={event => this.enableAudio = (event.currentTarget as HTMLInputElement).value === '1'}
-						></input>
+						<span class="feature-wrap">
+							<h2 class="feature">{this.fundamentalLabel}</h2>
+							<input class="fundamental"
+								type="number"
+								min={this.FREQUENCY_MIN}
+								max={Math.floor(this.FREQUENCY_MAX / this.harmonics)}
+								value={this.fundamental}
+								onChange={event => this.fundamental = Number((event.currentTarget as HTMLInputElement).value)}
+								onInput={event => this._onFundamentalInput(Number((event.currentTarget as HTMLInputElement).value))}
+							></input>
+							<span class="hz">Hz</span>
+						</span>
+						<span class="feature-wrap">
+							<h2 class="feature">{this.harmonicsLabel}</h2>
+							<input class="harmonics"
+								type="number"
+								min={1}
+								max={Math.floor(this.FREQUENCY_MAX / this.fundamental)}
+								value={this.harmonics}
+								onChange={event => this.harmonics = this._checkHarmonicsBounds(Number((event.currentTarget as HTMLInputElement).value))}
+							></input>
+						</span>
+						<span class="feature-wrap">
+							<h2 class="feature">{this.audioLabel}</h2>
+							<input class="toggle"
+								type="range"
+								min={0}
+								max={1}
+								step={1}
+								value={this.enableAudio ? 1 : 0}
+								onInput={event => this.enableAudio = (event.currentTarget as HTMLInputElement).value === '1'}
+							></input>
+						</span>
 					</div>
 					<div class="controls">
 						<div class="row">
@@ -601,13 +645,69 @@ export class FourierSynth {
 							></input>
 							<input class="field"
 								readonly
-								value={`${this._gainFormatter.format(20*Math.log10(this._getLogGain()))}dB`}
+								value={`${this._gainFormatter.format(20*Math.log10(this.gain))}dB`}
 							></input>
 							<button class="clear" onClick={() => this.gain = this.GAIN_MAX}>X</button>
 						</div>
 						<button class="reset" onClick={() => this._resetData()}>Reset</button>
 					</div>
-					<div class="graph">
+					<div class="header">
+						<span class="feature-wrap">
+							<h2 class="feature">{this.graphLabel}</h2>
+							<input class="toggle" title="Show the Fourier waveform graph"
+								type="range"
+								min={0}
+								max={1}
+								step={1}
+								value={this.hideGraph ? 0 : 1}
+								onInput={event => this.hideGraph = (event.currentTarget as HTMLInputElement).value === '0'}
+							></input>
+						</span>
+						<span class="feature-wrap">
+							<h2 class="feature">{this.periodsLabel}</h2>
+							<input class="periods" title="Number of fundamental wave periods to display"
+								type="number"
+								min={1}
+								max={this.PERIODS_MAX}
+								value={this.periods}
+								onChange={event => this.periods = Number((event.currentTarget as HTMLInputElement).value)}
+							></input>
+						</span>
+						<span class="feature-wrap">
+							<h2 class="feature">{this.gridDotsLabel}</h2>
+							<input class="toggle" title="Draw the harmonic grid dots on the graph"
+								type="range"
+								min={0}
+								max={1}
+								step={1}
+								value={this.hideGridDots ? 0 : 1}
+								onInput={event => this.hideGridDots = (event.currentTarget as HTMLInputElement).value === '0'}
+							></input>
+						</span>
+						<span class="feature-wrap">
+							<h2 class="feature">{this.linesLabel}</h2>
+							<input class="toggle" title="Draw vertical lines betweenthe fundamental  wave periods"
+								type="range"
+								min={0}
+								max={1}
+								step={1}
+								value={this.hideLines ? 0 : 1}
+								onInput={event => this.hideLines = (event.currentTarget as HTMLInputElement).value === '0'}
+							></input>
+						</span>
+						<span class="feature-wrap">
+							<h2 class="feature">{this.endpointsLabel}</h2>
+							<input class="toggle" title="Draw dots where the fundamental wave periods start and stop"
+								type="range"
+								min={0}
+								max={1}
+								step={1}
+								value={this.hideEnpoints ? 0 : 1}
+								onInput={event => this.hideEnpoints = (event.currentTarget as HTMLInputElement).value === '0'}
+							></input>
+						</span>
+					</div>
+					<div class="graph" style={this.hideGraph && {visibility: 'hidden'}}>
 						<canvas ref={el => this._canvas = el}></canvas>
 					</div>
 				</div>
