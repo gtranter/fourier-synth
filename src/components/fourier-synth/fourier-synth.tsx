@@ -25,7 +25,7 @@ export class FourierSynth {
 	private readonly CONTROL_RANGE: number = 100.0;
 	private readonly FREQUENCY_MAX: number = 20000;
 	private readonly FREQUENCY_MIN: number = 20;
-	private readonly GAIN_MAX: number = 1.0;
+	private readonly GAIN_DEFAULT: number = Math.pow(10, -6 / 20); // -6dB ~= 0.501
 
 	// color constants
 	private readonly BLACK: string = 'rgb(0, 0, 0)';
@@ -33,13 +33,25 @@ export class FourierSynth {
 	private readonly GREEN: string = 'rgb(0, 255, 0)';
 	private readonly RED: string = 'rgb(255, 0, 0)';
 
+	// the DC offset of the last plot
+	private _asymmetry = 0.0;
+
 	private _audioContext: AudioContext;
+
 	private _canvas: HTMLCanvasElement;
+
 	private _data: Record<string, FourierData> = {};
+
 	private _fieldFormatter = Intl.NumberFormat(navigator.language, {minimumFractionDigits: 1, maximumFractionDigits: 1});
+
 	private _gain: GainNode;
+
 	private _oscillator: OscillatorNode;
+	// the peak-to-peak range of the last plot;
+	private _peakToPeak: number;
+
 	private _renderer: CanvasRenderingContext2D;
+
 	private _gainFormatter = Intl.NumberFormat(navigator.language, {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
 	@Element() hostElement: HTMLFourierSynthElement;
@@ -66,10 +78,10 @@ export class FourierSynth {
 	/**
 	 * Gain is the 0-1 value of the slider that will be displayed in dB.
 	 */
-	@State() gain: number = this.GAIN_MAX;
+	@State() gain: number = this.GAIN_DEFAULT;
 	@Watch('gain')
 	handleGainChange(newValue: number) {
-		this.gain = newValue = Math.max(0, Math.min(newValue, this.GAIN_MAX));
+		this.gain = newValue = Math.max(0.0, Math.min(newValue, 1.0));
 		if (this._gain) {
 			this._gain.gain.value = newValue;
 		}
@@ -80,6 +92,24 @@ export class FourierSynth {
 	 * Text for the enable audio control label.
 	 */
 	@Prop({reflect: true}) audioLabel: string = 'Enable audio';
+
+	/**
+	 * Automatically adjust the gain to match the wave.
+	 */
+	@Prop({mutable: true}) autoGain: boolean = false;
+	@Watch('autoGain')
+	handleAutoGainChange() {
+		this._plot();
+	}
+
+	/**
+	 * Automatically adjust the DC offset to match the wave.
+	 */
+	@Prop({mutable: true}) autoOffset: boolean = false;
+	@Watch('autoOffset')
+	handleAutoOffsetChange() {
+		this._plot();
+	}
 
 	/**
 	 * Color of graph background lines and dots. Use a CSS color value.
@@ -463,47 +493,63 @@ export class FourierSynth {
 		const timeBase = wavelength / (2.0 * Math.PI);
 
 		// scale the y values so that at max gain a single harmonic wave would occupy the full height of the graph
-		const scaleY = halfY / this.CONTROL_RANGE;
+		const scaleY = this.gain * (halfY / this.CONTROL_RANGE);
 
-		// y starts at the vertical center +/- the scaled DC offset which can be +/- one full wave
-		const yCenter = halfY - (scaleY * this._data.cos0.value);
+		// y starts at the vertical center +/- the DC offset which can be +/- one full wave
+		let yCenter = halfY - (scaleY * this._data.cos0.value / this.gain);
 
-		let yOrigin;
+		let yPeakPos = 0;
+		let yPeakNeg = 0;
+
+		let originY: number;
 		for (let x = 0; x <= maxX; x++) {
 			// start at zero
 			let y = 0.0;
-			const xCalc = (x % wavelength) / timeBase;
+
 			// add fourier series modificationss
+			const xTime = (x % wavelength) / timeBase;
 			for (let harmonic = 1; harmonic <= this.harmonics; harmonic++) {
-				const value = harmonic * xCalc;
+				const xHarmonic = harmonic * xTime;
 				// invert because the canvas is "upside down" relative to graph +/-
-				y -= this._data[`cos${harmonic}`].value * Math.cos(value);
-				y -= this._data[`sin${harmonic}`].value * Math.sin(value);
+				y -= this._data[`cos${harmonic}`].value * Math.cos(xHarmonic);
+				y -= this._data[`sin${harmonic}`].value * Math.sin(xHarmonic);
 			}
 
-			// adjust by scale, gain, and offset
-			y = y * scaleY * this.gain + yCenter;
+			yPeakPos = Math.max(yPeakPos, y);
+			yPeakNeg = Math.min(yPeakNeg, y);
+
+			// adjust by scale & gain, and offset
+			y = yCenter + (scaleY * y);
+
+			this._asymmetry = Math.max(this._asymmetry, Math.max(0, y - halfY));
 
 			if (x === 0) {
-				yOrigin = y
+				originY = y;
 				this._renderer.moveTo(x, y);
 			}
 			else {
 				this._renderer.lineTo(x, y);
 			}
 		}
+
+		if (this.autoGain || this.autoOffset) {
+			// yCenter -= yPeakPos - yPeakNeg;
+		}
+		// this._asymmetry = yCenter + scaleY * -(yPeakPos + yPeakNeg);
+		this._peakToPeak = scaleY * (yPeakPos - yPeakNeg);
 		this._renderer.stroke();
 		this._renderer.closePath();
+
 
 		// wave start/end-point dots
 		if (!this.hideEnpoints) {
 			this._renderer.fillStyle = this.endpointColor || this.GREEN;
+			this._renderer.beginPath();
 			for (let x = 0; x <= maxX; x += wavelength) {
-				this._renderer.beginPath();
-				this._renderer.arc(x, yOrigin, 3, -Math.PI, Math.PI, false);
+				this._renderer.arc(x, originY, 3, -Math.PI, Math.PI, false);
 				this._renderer.fill();
-				this._renderer.closePath();
 			}
+			this._renderer.closePath();
 		}
 	}
 
@@ -518,13 +564,26 @@ export class FourierSynth {
 		}
 		else {
 			// reset all
-			this.gain = this.GAIN_MAX;
+			this.gain = this.GAIN_DEFAULT;
 			Object.values(this._data).forEach(data => {
 				data.value = 0;
 			});
 		}
 
 		this._update();
+	}
+
+	private _fitToCanvas() {
+		if (this._asymmetry !== 0) {
+			console.log(this._asymmetry);
+			this._data.cos0.value -= this.CONTROL_RANGE * this._asymmetry / this._canvas.height / 2;
+			console.log(this._data.cos0.value);
+			this._plot();
+		}
+		// if (this._peakToPeak !== this._canvas.height) {
+		// 	// console.log(this._peakToPeak / this._canvas.height);
+		// 	this.gain /= (this._peakToPeak / this._canvas.height);
+		// }
 	}
 
 	/**
@@ -571,16 +630,37 @@ export class FourierSynth {
 		// create the harmonic control row
 		const control = (id: string) => {
 			const control = this._data[id];
-			return [
-				<label key={`label${id}`} class="control-label" innerHTML={control.label}></label>,
-				<input key={`slider${id}`} class="slider"
+			const slider = () => 'cos0' === id
+				? <span class="row">
+					<input key={`slider${id}`}
+						class="slider"
+						disabled={this.autoOffset}
+						type="range"
+						min={-this.CONTROL_RANGE}
+						max={this.CONTROL_RANGE}
+						step={0.1}
+						value={control.value}
+						onInput={event => this._updateData(event.currentTarget as HTMLInputElement, id)}
+					></input>
+					<input class="checkbox"
+						type="checkbox"
+						checked={this.autoOffset}
+						onInput={event => this.autoOffset = (event.currentTarget as HTMLInputElement).checked}
+					></input>
+					<label class="auto-label">Auto</label>
+				</span>
+				: <input key={`slider${id}`} class="slider"
 					type="range"
 					min={-this.CONTROL_RANGE}
 					max={this.CONTROL_RANGE}
 					step={0.1}
 					value={control.value}
 					onInput={event => this._updateData(event.currentTarget as HTMLInputElement, id)}
-				></input>,
+				></input>
+			;
+			return [
+				<label key={`label${id}`} class="control-label" innerHTML={control.label}></label>,
+				slider(),
 				<input key={`field${id}`} class="field"
 					type="number"
 					min={-this.CONTROL_RANGE}
@@ -665,17 +745,25 @@ export class FourierSynth {
 							<label class="control-label">{this.gainLabel}</label>
 							<input class="slider"
 								type="range"
+								disabled={this.autoGain}
 								min={0}
-								max={this.GAIN_MAX}
+								max={1.0}
 								step={0.001}
 								value={this.gain}
 								onInput={event => this.gain = Number((event.currentTarget as HTMLInputElement).value)}
 							></input>
+							{/* <input class="checkbox"
+								type="checkbox"
+								checked={this.autoGain}
+								onInput={event => this.autoGain = (event.currentTarget as HTMLInputElement).checked}
+							></input>
+							<label class="auto-label">Auto</label> */}
+							<button onClick={() => this._fitToCanvas()}>Auto</button>
 							<input class="field"
 								readonly
-								value={`${this._gainFormatter.format(20*Math.log10(this.gain))}dB`}
+								value={`${this._gainFormatter.format(20 * Math.log10(this.gain))}dB`}
 							></input>
-							<button class="clear" onClick={() => this.gain = this.GAIN_MAX}>X</button>
+							<button class="clear" onClick={() => this.gain = this.GAIN_DEFAULT}>X</button>
 						</div>
 						<button class="reset" onClick={() => this._resetData()}>Reset</button>
 					</div>
