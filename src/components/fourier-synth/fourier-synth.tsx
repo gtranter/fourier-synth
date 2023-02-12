@@ -47,6 +47,7 @@ export class FourierSynth {
 	private _gain: GainNode;
 
 	private _oscillator: OscillatorNode;
+
 	// the peak-to-peak range of the last plot;
 	private _peakToPeak: number;
 
@@ -506,6 +507,7 @@ export class FourierSynth {
 			// start at zero
 			let y = 0.0;
 
+
 			// add fourier series modificationss
 			const xTime = (x % wavelength) / timeBase;
 			for (let harmonic = 1; harmonic <= this.harmonics; harmonic++) {
@@ -539,7 +541,6 @@ export class FourierSynth {
 		this._peakToPeak = scaleY * (yPeakPos - yPeakNeg);
 		this._renderer.stroke();
 		this._renderer.closePath();
-
 
 		// wave start/end-point dots
 		if (!this.hideEnpoints) {
