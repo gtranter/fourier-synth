@@ -25,7 +25,7 @@ export class FourierSynth {
 	private readonly CONTROL_RANGE: number = 100.0;
 	private readonly FREQUENCY_MAX: number = 20000;
 	private readonly FREQUENCY_MIN: number = 20;
-	private readonly GAIN_MAX: number = 1.0;
+	private readonly GAIN_DEFAULT: number = Math.pow(10, -6 / 20); // -6dB ~= 0.501
 
 	// color constants
 	private readonly BLACK: string = 'rgb(0, 0, 0)';
@@ -34,12 +34,19 @@ export class FourierSynth {
 	private readonly RED: string = 'rgb(255, 0, 0)';
 
 	private _audioContext: AudioContext;
+
 	private _canvas: HTMLCanvasElement;
+
 	private _data: Record<string, FourierData> = {};
+
 	private _fieldFormatter = Intl.NumberFormat(navigator.language, {minimumFractionDigits: 1, maximumFractionDigits: 1});
+
 	private _gain: GainNode;
+
 	private _oscillator: OscillatorNode;
+
 	private _renderer: CanvasRenderingContext2D;
+
 	private _gainFormatter = Intl.NumberFormat(navigator.language, {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
 	@Element() hostElement: HTMLFourierSynthElement;
@@ -66,10 +73,10 @@ export class FourierSynth {
 	/**
 	 * Gain is the 0-1 value of the slider that will be displayed in dB.
 	 */
-	@State() gain: number = this.GAIN_MAX;
+	@State() gain: number = this.GAIN_DEFAULT;
 	@Watch('gain')
 	handleGainChange(newValue: number) {
-		this.gain = newValue = Math.max(0, Math.min(newValue, this.GAIN_MAX));
+		this.gain = newValue = Math.max(0.0, Math.min(newValue, 1.0));
 		if (this._gain) {
 			this._gain.gain.value = newValue;
 		}
@@ -463,47 +470,50 @@ export class FourierSynth {
 		const timeBase = wavelength / (2.0 * Math.PI);
 
 		// scale the y values so that at max gain a single harmonic wave would occupy the full height of the graph
-		const scaleY = halfY / this.CONTROL_RANGE;
+		const scaleY = this.gain * (halfY / this.CONTROL_RANGE);
 
-		// y starts at the vertical center +/- the scaled DC offset which can be +/- one full wave
-		const yCenter = halfY - (scaleY * this._data.cos0.value);
+		// y starts at the vertical center +/- the DC offset which can be +/- one full wave
+		let yCenter = halfY - (scaleY * this._data.cos0.value / this.gain);
 
-		let yOrigin;
+		let originY: number;
 		for (let x = 0; x <= maxX; x++) {
 			// start at zero
 			let y = 0.0;
-			const xCalc = (x % wavelength) / timeBase;
+
 			// add fourier series modificationss
+			const xTime = (x % wavelength) / timeBase;
 			for (let harmonic = 1; harmonic <= this.harmonics; harmonic++) {
-				const value = harmonic * xCalc;
+				const xHarmonic = harmonic * xTime;
 				// invert because the canvas is "upside down" relative to graph +/-
-				y -= this._data[`cos${harmonic}`].value * Math.cos(value);
-				y -= this._data[`sin${harmonic}`].value * Math.sin(value);
+				y -= this._data[`cos${harmonic}`].value * Math.cos(xHarmonic);
+				y -= this._data[`sin${harmonic}`].value * Math.sin(xHarmonic);
 			}
 
-			// adjust by scale, gain, and offset
-			y = y * scaleY * this.gain + yCenter;
+			// adjust by scale & gain, and offset
+			y = yCenter + (scaleY * y);
 
 			if (x === 0) {
-				yOrigin = y
+				originY = y;
 				this._renderer.moveTo(x, y);
 			}
 			else {
 				this._renderer.lineTo(x, y);
 			}
 		}
+
 		this._renderer.stroke();
 		this._renderer.closePath();
+
 
 		// wave start/end-point dots
 		if (!this.hideEnpoints) {
 			this._renderer.fillStyle = this.endpointColor || this.GREEN;
+			this._renderer.beginPath();
 			for (let x = 0; x <= maxX; x += wavelength) {
-				this._renderer.beginPath();
-				this._renderer.arc(x, yOrigin, 3, -Math.PI, Math.PI, false);
+				this._renderer.arc(x, originY, 3, -Math.PI, Math.PI, false);
 				this._renderer.fill();
-				this._renderer.closePath();
 			}
+			this._renderer.closePath();
 		}
 	}
 
@@ -518,7 +528,7 @@ export class FourierSynth {
 		}
 		else {
 			// reset all
-			this.gain = this.GAIN_MAX;
+			this.gain = this.GAIN_DEFAULT;
 			Object.values(this._data).forEach(data => {
 				data.value = 0;
 			});
@@ -666,16 +676,16 @@ export class FourierSynth {
 							<input class="slider"
 								type="range"
 								min={0}
-								max={this.GAIN_MAX}
+								max={1.0}
 								step={0.001}
 								value={this.gain}
 								onInput={event => this.gain = Number((event.currentTarget as HTMLInputElement).value)}
 							></input>
 							<input class="field"
 								readonly
-								value={`${this._gainFormatter.format(20*Math.log10(this.gain))}dB`}
+								value={`${this._gainFormatter.format(20 * Math.log10(this.gain))}dB`}
 							></input>
-							<button class="clear" onClick={() => this.gain = this.GAIN_MAX}>X</button>
+							<button class="clear" onClick={() => this.gain = this.GAIN_DEFAULT}>X</button>
 						</div>
 						<button class="reset" onClick={() => this._resetData()}>Reset</button>
 					</div>
