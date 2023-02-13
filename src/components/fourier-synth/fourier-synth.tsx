@@ -105,7 +105,7 @@ export class FourierSynth {
 	@Prop({reflect: true}) audioLabel: string = 'Enable audio';
 
 	/**
-	 * Automatically adjust the gain to match the wave.
+	 * Automatically adjust the gain and DC offset (cos0) to match the wave.
 	 */
 	@Prop({mutable: true}) autoAdjust: boolean = false;
 	@Watch('autoAdjust')
@@ -123,8 +123,7 @@ export class FourierSynth {
 	 */
 	@Prop() axesColor: string = this.BLUE;
 	@Watch('axesColor')
-	axesColorChange(newValue: string) {
-		this._backgroundRenderer.strokeStyle = newValue;
+	axesColorChange() {
 		this._drawBackground();
 	}
 
@@ -133,8 +132,7 @@ export class FourierSynth {
 	 */
 	@Prop() backgroundColor: string = this.BLACK;
 	@Watch('backgroundColor')
-	backgroundColorChange(newValue: string) {
-		this._backgroundRenderer.strokeStyle = newValue;
+	backgroundColorChange() {
 		this._drawBackground();
 	}
 
@@ -147,16 +145,6 @@ export class FourierSynth {
 	 * Text for the dividers display control label. Set the text empty to hide the control.
 	 */
 	@Prop({reflect: true}) dividersLabel: string = 'Dividers';
-
-	/**
-	 * Color of the wave endpoint dots. Use a CSS color value.
-	 */
-	@Prop() endpointColor: string = this.GREEN;
-	@Watch('endpointColor')
-	endpointColorChange(newValue: string) {
-		this._waveformRenderer.fillStyle = newValue;
-		this._drawWaveform();
-	}
 
 	/**
 	 * Text for the endpoints display control label. Set the text empty to hide the control.
@@ -276,9 +264,13 @@ export class FourierSynth {
 	}
 
 	/**
-	 * Text for the main title. Set the text empty to hide the title.
+	 * Don't display the graph DC offset line.
 	 */
-	@Prop({reflect: true}) mainTitle: string = 'Fourier Synthesizer';
+	@Prop({mutable: true}) hideOffset: boolean = false;
+	@Watch('hideOffset')
+	hideOffsetChange() {
+		this._drawWaveform();
+	}
 
 	/**
 	 * Color of the waveform line. Use a CSS color value.
@@ -296,7 +288,6 @@ export class FourierSynth {
 	@Watch('lineWidth')
 	lineWidthChange(newValue: number) {
 		this.lineWidth = newValue = Math.max(1, Math.min(newValue, 5));
-		this._waveformRenderer.lineWidth = newValue;
 		this._drawWaveform();
 	}
 
@@ -304,6 +295,11 @@ export class FourierSynth {
 	 * Text for the line width control label. Set the text empty to hide the control.
 	 */
 	@Prop({reflect: true}) lineWidthLabel: string = 'Line width';
+
+	/**
+	 * Text for the main title. Set the text empty to hide the title.
+	 */
+	@Prop({reflect: true}) mainTitle: string = 'Fourier Synthesizer';
 
 	/**
 	 * Limit of the number of harmonics. The actual highest possible number of harmonics
@@ -319,6 +315,20 @@ export class FourierSynth {
 			this.harmonicsChange(newValue, this.harmonics);
 		}
 	}
+
+	/**
+	 * Color of the graph DC offset line and wave endpoint dots. Use a CSS color value.
+	 */
+	@Prop() offsetColor: string = this.GREEN;
+	@Watch('offsetColor')
+	offsetColorChange() {
+		this._drawWaveform();
+	}
+
+	/**
+	 * Text for the offset display control label. Set the text empty to hide the control.
+	 */
+	@Prop({reflect: true}) offsetLabel: string = 'Offset';
 
 	/**
 	 * Number of wave periods to display in the graph. From 1 to 5.
@@ -507,16 +517,30 @@ export class FourierSynth {
 		// set rendering properties
 		this._waveformCanvas.width = width;
 		this._waveformCanvas.height = height;
-		this._waveformRenderer.fillStyle = this.endpointColor || this.GREEN;
-		this._waveformRenderer.lineWidth = this.lineWidth;
-		this._waveformRenderer.strokeStyle = this.lineColor || this.RED;
+		this._waveformRenderer.fillStyle = this.offsetColor || this.GREEN;
 
 		// erase
 		this._waveformRenderer.clearRect(0, 0, width, height);
 
+		// draw DC offset
+		if (!this.hideOffset && this._data.cos0.value !== 0) {
+			this._waveformRenderer.lineWidth = 1;
+			this._waveformRenderer.strokeStyle = this.offsetColor || this.GREEN;
+			this._waveformRenderer.beginPath();
+			const y = -this._data.cos0.value / 100 * halfY + halfY;
+			this._waveformRenderer.moveTo(0, y);
+			this._waveformRenderer.lineTo(width, y);
+			this._waveformRenderer.stroke();
+			this._waveformRenderer.closePath();
+		}
+
+		this._waveformRenderer.lineWidth = this.lineWidth;
+		this._waveformRenderer.strokeStyle = this.lineColor || this.RED;
+
 		// the length of one waveform in pixels
 		const wavelength = width / this.periods;
 
+		// time constant
 		const timeBase = wavelength / (2.0 * Math.PI);
 
 		// scale the y values so that at max gain a single harmonic wave would occupy the full height of the graph
@@ -525,9 +549,11 @@ export class FourierSynth {
 		// y starts at the vertical center +/- the DC offset which can be +/- one full wave
 		let yCenter = halfY - (scaleY * this._data.cos0.value / this.gain);
 
+		// keeping track of y values for auto adjust
 		let yPeakPos = 0;
 		let yPeakNeg = 0;
 
+		// keep track of vertical origin for endpoints
 		let originY: number;
 
 		// draw waveform
@@ -884,7 +910,7 @@ export class FourierSynth {
 								</span>}
 							</div>
 							<div class="row">
-								{this.endpointsLabel && <span class="feature-container">
+							{this.endpointsLabel && <span class="feature-container">
 									<label class="feature-label small">{this.endpointsLabel}</label>
 									<input class="toggle"
 										type="range"
@@ -893,6 +919,17 @@ export class FourierSynth {
 										step={1}
 										value={this.hideEnpoints ? 0 : 1}
 										onInput={event => this.hideEnpoints = (event.currentTarget as HTMLInputElement).value === '0'}
+									></input>
+								</span>}
+								{this.offsetLabel && <span class="feature-container">
+									<label class="feature-label small">{this.offsetLabel}</label>
+									<input class="toggle"
+										type="range"
+										min={0}
+										max={1}
+										step={1}
+										value={this.hideOffset ? 0 : 1}
+										onInput={event => this.hideOffset = (event.currentTarget as HTMLInputElement).value === '0'}
 									></input>
 								</span>}
 								{this.dividersLabel && <span class="feature-container">
