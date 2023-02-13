@@ -33,12 +33,14 @@ export class FourierSynth {
 	private readonly GREEN: string = 'rgb(0, 255, 0)';
 	private readonly RED: string = 'rgb(255, 0, 0)';
 
-	// the DC offset of the last plot
+	// the calculated assymetry of the last plot
 	private _asymmetry = 0.0;
 
 	private _audioContext: AudioContext;
 
-	private _canvas: HTMLCanvasElement;
+	private _backgroundCanvas: HTMLCanvasElement;
+
+	private _backgroundRenderer: CanvasRenderingContext2D;
 
 	private _data: Record<string, FourierData> = {};
 
@@ -46,14 +48,22 @@ export class FourierSynth {
 
 	private _gain: GainNode;
 
+	private _gainFormatter = Intl.NumberFormat(navigator.language, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+	private _needsAdjusting: boolean = false;
+
 	private _oscillator: OscillatorNode;
 
-	// the peak-to-peak range of the last plot;
+	// the peak-to-peak size of the last plot;
 	private _peakToPeak: number;
 
-	private _renderer: CanvasRenderingContext2D;
+	private _plotCount: number = 0;
 
-	private _gainFormatter = Intl.NumberFormat(navigator.language, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+	private _resizeTimeout: number;
+
+	private _waveformCanvas: HTMLCanvasElement;
+
+	private _waveformRenderer: CanvasRenderingContext2D;
 
 	@Element() hostElement: HTMLFourierSynthElement;
 
@@ -62,7 +72,7 @@ export class FourierSynth {
 	 */
 	@State() enableAudio: boolean = false;
 	@Watch('enableAudio')
-	handleEnableAudioChange(newValue: boolean) {
+	enableAudioChange(newValue: boolean) {
 		if (newValue) {
 			this._play()
 		}
@@ -72,22 +82,22 @@ export class FourierSynth {
 	}
 
 	/**
-	 * Manually updated to trigger rendering.
-	 */
-	@State() updates: number = 0;
-
-	/**
 	 * Gain is the 0-1 value of the slider that will be displayed in dB.
 	 */
 	@State() gain: number = this.GAIN_DEFAULT;
 	@Watch('gain')
-	handleGainChange(newValue: number) {
+	gainChange(newValue: number) {
 		this.gain = newValue = Math.max(0.0, Math.min(newValue, 1.0));
 		if (this._gain) {
 			this._gain.gain.value = newValue;
 		}
-		this._plot();
+		this._drawWaveform();
 	}
+
+	/**
+	 * Manually updated to trigger rendering.
+	 */
+	@State() updateCount: number = 0;
 
 	/**
 	 * Text for the enable audio control label.
@@ -97,30 +107,36 @@ export class FourierSynth {
 	/**
 	 * Automatically adjust the gain to match the wave.
 	 */
-	@Prop({mutable: true}) autoGain: boolean = false;
-	@Watch('autoGain')
-	handleAutoGainChange() {
-		this._plot();
+	@Prop({mutable: true}) autoAdjust: boolean = false;
+	@Watch('autoAdjust')
+	autoAdjustChange() {
+		this._drawWaveform();
 	}
 
 	/**
-	 * Automatically adjust the DC offset to match the wave.
+	 * Text for the auto adjust control label.
 	 */
-	@Prop({mutable: true}) autoOffset: boolean = false;
-	@Watch('autoOffset')
-	handleAutoOffsetChange() {
-		this._plot();
-	}
+	@Prop({reflect: true}) autoAdjustLabel: string = 'Auto adjust';
 
 	/**
 	 * Color of graph background lines and dots. Use a CSS color value.
 	 */
 	@Prop() axesColor: string = this.BLUE;
+	@Watch('axesColor')
+	axesColorChange(newValue: string) {
+		this._backgroundRenderer.strokeStyle = newValue;
+		this._drawBackground();
+	}
 
 	/**
 	 * Background color of graph. Use a CSS color value.
 	 */
 	@Prop() backgroundColor: string = this.BLACK;
+	@Watch('backgroundColor')
+	backgroundColorChange(newValue: string) {
+		this._backgroundRenderer.strokeStyle = newValue;
+		this._drawBackground();
+	}
 
 	/**
 	 * Title text for the cosine controls.
@@ -136,6 +152,11 @@ export class FourierSynth {
 	 * Color of the wave endpoint dots. Use a CSS color value.
 	 */
 	@Prop() endpointColor: string = this.GREEN;
+	@Watch('endpointColor')
+	endpointColorChange(newValue: string) {
+		this._waveformRenderer.fillStyle = newValue;
+		this._drawWaveform();
+	}
 
 	/**
 	 * Text for the endpoints display control label. Set the text empty to hide the control.
@@ -147,13 +168,13 @@ export class FourierSynth {
 	 */
 	@Prop({reflect: true, mutable: true}) fundamental: number = 220;
 	@Watch('fundamental')
-	handleFundamentalChange(newValue: number) {
+	fundamentalChange(newValue: number) {
 		// apply bounds
 		this.fundamental = newValue = Math.max(this.FREQUENCY_MIN, Math.min(newValue, this.FREQUENCY_MAX));
 		// remove harmonics over 20000Hz
 		const maxHarmonics = Math.floor(this.FREQUENCY_MAX / newValue);
 		if (maxHarmonics < this.harmonics) {
-			this.handleHarmonicsChange(maxHarmonics, this.harmonics)
+			this.harmonicsChange(maxHarmonics, this.harmonics)
 		}
 		this._update();
 	}
@@ -183,7 +204,7 @@ export class FourierSynth {
 	 */
 	@Prop({reflect: true, mutable: true}) harmonics: number = 8;
 	@Watch('harmonics')
-	handleHarmonicsChange(newValue: number, oldValue: number) {
+	harmonicsChange(newValue: number, oldValue: number) {
 		// apply bounds based on frequency
 		this.harmonics = newValue = this._checkHarmonicsBounds(newValue);
 
@@ -222,8 +243,8 @@ export class FourierSynth {
 	 */
 	@Prop({mutable: true}) hideDividers: boolean = false;
 	@Watch('hideDividers')
-	handleHideDividersChange() {
-		this._plot();
+	hideDividersChange() {
+		this._drawBackground();
 	}
 
 	/**
@@ -231,8 +252,8 @@ export class FourierSynth {
 	 */
 	@Prop({mutable: true}) hideEnpoints: boolean = false;
 	@Watch('hideEnpoints')
-	handleHideEndpointsChange() {
-		this._plot();
+	hideEndpointsChange() {
+		this._drawWaveform();
 	}
 
 	/**
@@ -240,8 +261,9 @@ export class FourierSynth {
 	 */
 	@Prop({mutable: true}) hideGraph: boolean = false;
 	@Watch('hideGraph')
-	handleHideGraphChange() {
-		this._plot();
+	hideGraphChange() {
+		this._drawBackground();
+		this._drawWaveform();
 	}
 
 	/**
@@ -249,8 +271,8 @@ export class FourierSynth {
 	 */
 	@Prop({mutable: true}) hideGridDots: boolean = false;
 	@Watch('hideGridDots')
-	handleHideGridDotsChange() {
-		this._plot();
+	hideGridDotsChange() {
+		this._drawBackground();
 	}
 
 	/**
@@ -259,13 +281,23 @@ export class FourierSynth {
 	@Prop({reflect: true}) mainTitle: string = 'Fourier Synthesizer';
 
 	/**
-	 * The width of the graph plot line.
+	 * Color of the waveform line. Use a CSS color value.
+	 */
+	@Prop() lineColor: string = this.RED;
+	@Watch('lineColor')
+	lineColorChange() {
+		this._drawWaveform();
+	}
+
+	/**
+	 * The width of the wave plot line.
 	 */
 	@Prop({mutable: true}) lineWidth: number = 3;
 	@Watch('lineWidth')
-	handleLineWidthChange(newValue: number) {
+	lineWidthChange(newValue: number) {
 		this.lineWidth = newValue = Math.max(1, Math.min(newValue, 5));
-		this._plot();
+		this._waveformRenderer.lineWidth = newValue;
+		this._drawWaveform();
 	}
 
 	/**
@@ -281,10 +313,10 @@ export class FourierSynth {
 	 */
 	@Prop() maxHarmonics: number = 100;
 	@Watch('maxHarmonics')
-	handleMaxHarmonicsChange(newValue: number) {
+	maxHarmonicsChange(newValue: number) {
 		this.maxHarmonics = newValue = Math.max(1, Math.min(newValue, 1000));
 		if (newValue < this.harmonics) {
-			this.handleHarmonicsChange(newValue, this.harmonics);
+			this.harmonicsChange(newValue, this.harmonics);
 		}
 	}
 
@@ -293,9 +325,10 @@ export class FourierSynth {
 	 */
 	@Prop({reflect: true, mutable: true}) periods: number = 3;
 	@Watch('periods')
-	handlePeriodsChange(newValue: number) {
+	periodsChange(newValue: number) {
 		this.periods = newValue = Math.max(1, Math.min(newValue, 5));
-		this._plot();
+		this._drawBackground();
+		this._drawWaveform();
 	}
 
 	/**
@@ -314,20 +347,15 @@ export class FourierSynth {
 	@Prop({reflect: true}) sinTitle: string = 'Sin';
 
 	/**
-	 * Color of graph lines and dots. Use a CSS color value.
-	 */
-	@Prop() waveColor: string = this.RED;
-
-	/**
 	 * Stencil initialization.
 	 */
 	async componentWillLoad() {
 		// initialize data by setting harmonics
-		this.handleHarmonicsChange(this.harmonics, -1);
+		this.harmonicsChange(this.harmonics, -1);
 
-		this.handleFundamentalChange(this.fundamental);
+		this.fundamentalChange(this.fundamental);
 
-		this.handlePeriodsChange(this.periods);
+		this.periodsChange(this.periods);
 	}
 
 	/**
@@ -348,10 +376,43 @@ export class FourierSynth {
 			});
 		});
 
-		// set up canvas renderer
-		this._renderer = this._canvas.getContext('2d');
+		// draw graph first time
+		this._initGraph();
+		this._drawBackground();
+		this._drawWaveform();
 
-		this._plot();
+		// trigger repaint after window resize
+		window.addEventListener('resize', () => {
+			clearTimeout(this._resizeTimeout);
+			this._resizeTimeout = window.setTimeout(() => {
+				this._drawBackground();
+				this._drawWaveform();
+			}, 100);
+		});
+	}
+
+	private _adjustGainAndOffset() {
+		let update = false;
+		let gain: number;
+		if (this._peakToPeak !== this._waveformCanvas.height) {
+			update = true;
+			console.log(this._peakToPeak / this._waveformCanvas.height);
+			gain = this.gain / (this._peakToPeak / this._waveformCanvas.height);
+		}
+		if (this._asymmetry !== 0) {
+			update = true;
+			this._data.cos0.value = this.CONTROL_RANGE * (this._asymmetry / this._waveformCanvas.height);
+			console.log(this._asymmetry, this._data.cos0.value);
+		}
+		if (update) {
+			if (gain) {
+				this.gain = gain;
+			}
+			else {
+				this._drawWaveform();
+				this.updateCount++;
+			}
+		}
 	}
 
 	/**
@@ -361,6 +422,178 @@ export class FourierSynth {
 	 */
 	private _checkHarmonicsBounds(harmonics: number): number {
 		return Math.max(1, Math.min(harmonics, Math.min(Math.floor(this.FREQUENCY_MAX / this.fundamental), this.maxHarmonics)));
+	}
+
+	private _drawBackground() {
+		if (!this._backgroundCanvas || !this._backgroundRenderer) {
+			return;
+		}
+
+		console.log('draw background');
+
+		// get the canvas size
+		const width = this._backgroundCanvas.offsetWidth;
+		const height = this._backgroundCanvas.offsetHeight;
+		const halfY = height / 2;
+		this._backgroundCanvas.width = width;
+		this._backgroundCanvas.height = height;
+
+		// set rendering properties
+		this._backgroundRenderer.fillStyle = this.axesColor || this.BLUE;
+		this._backgroundRenderer.lineWidth = 2;
+		this._backgroundRenderer.strokeStyle = this.axesColor || this.BLUE;
+
+		// erase
+		this._backgroundRenderer.clearRect(0, 0, width, height);
+
+		// the length of one waveform in pixels
+		const wavelength = width / this.periods;
+
+		// draw grid dots
+		if (!this.hideGridDots) {
+			let gridSize = wavelength / this.harmonics;
+			// make grid size no smaller than 10, but aligned to wavelength
+			for (let harmonic = this.harmonics - 1; gridSize < 10; harmonic--) {
+				gridSize = wavelength / harmonic;
+			}
+
+			// figure out where to start vertically so that the dot grid is centered
+			const startY = halfY % gridSize;
+
+			for (let x = gridSize; x < width; x += gridSize) {
+				for (let y = startY; y < height; y += gridSize) {
+					this._backgroundRenderer.beginPath();
+					this._backgroundRenderer.arc(x, y, 1, 0, Math.PI * 2, true);
+					this._backgroundRenderer.fill();
+					this._backgroundRenderer.closePath();
+				}
+			}
+		}
+
+		// draw x axis
+		this._backgroundRenderer.beginPath();
+		this._backgroundRenderer.moveTo(0, halfY);
+		this._backgroundRenderer.lineTo(width, halfY);
+		this._backgroundRenderer.stroke();
+		this._backgroundRenderer.closePath();
+
+		// draw wave divider lines
+		if (!this.hideDividers) {
+			this._backgroundRenderer.beginPath();
+			for (let x = wavelength; x < width; x += wavelength) {
+				this._backgroundRenderer.moveTo(x, 0);
+				this._backgroundRenderer.lineTo(x, height);
+			}
+			this._backgroundRenderer.stroke();
+			this._backgroundRenderer.closePath();
+		}
+	}
+
+	/**
+	 * Draw the waveform derived from the data.
+	 */
+	private _drawWaveform() {
+		if (this.hideGraph || !this._waveformCanvas || !this._waveformRenderer) {
+			return;
+		}
+
+		console.log('draw waveform', ++this._plotCount);
+
+		// get the canvas size
+		const width = this._waveformCanvas.offsetWidth;
+		const height = this._waveformCanvas.offsetHeight;
+		const halfY = height / 2;
+
+		// set rendering properties
+		this._waveformCanvas.width = width;
+		this._waveformCanvas.height = height;
+		this._waveformRenderer.fillStyle = this.endpointColor || this.GREEN;
+		this._waveformRenderer.lineWidth = this.lineWidth;
+		this._waveformRenderer.strokeStyle = this.lineColor || this.RED;
+
+		// erase
+		this._waveformRenderer.clearRect(0, 0, width, height);
+
+		// the length of one waveform in pixels
+		const wavelength = width / this.periods;
+
+		const timeBase = wavelength / (2.0 * Math.PI);
+
+		// scale the y values so that at max gain a single harmonic wave would occupy the full height of the graph
+		const scaleY = this.gain * (halfY / this.CONTROL_RANGE);
+
+		// y starts at the vertical center +/- the DC offset which can be +/- one full wave
+		let yCenter = halfY - (scaleY * this._data.cos0.value / this.gain);
+
+		let yPeakPos = 0;
+		let yPeakNeg = 0;
+
+		let originY: number;
+
+		// draw waveform
+		this._waveformRenderer.beginPath();
+		for (let x = 0; x <= width; x++) {
+			// start at zero
+			let y = 0.0;
+
+
+			// add fourier series modificationss
+			const xTime = (x % wavelength) / timeBase;
+			for (let harmonic = 1; harmonic <= this.harmonics; harmonic++) {
+				const xHarmonic = harmonic * xTime;
+				// invert because the canvas is "upside down" relative to graph +/-
+				y -= this._data[`cos${harmonic}`].value * Math.cos(xHarmonic);
+				y -= this._data[`sin${harmonic}`].value * Math.sin(xHarmonic);
+			}
+
+			yPeakPos = Math.max(yPeakPos, y);
+			yPeakNeg = Math.min(yPeakNeg, y);
+
+			// adjust by scale & gain, and offset
+			y = yCenter + (scaleY * y);
+
+			if (x === 0) {
+				originY = y;
+				this._waveformRenderer.moveTo(x, y);
+			}
+			else {
+				this._waveformRenderer.lineTo(x, y);
+			}
+		}
+		this._waveformRenderer.stroke();
+		this._waveformRenderer.closePath();
+
+		// wave start/end-point dots
+		if (!this.hideEnpoints) {
+			this._waveformRenderer.beginPath();
+			for (let x = 0; x <= width; x += wavelength) {
+				this._waveformRenderer.arc(x, originY, 3, -Math.PI, Math.PI, false);
+				this._waveformRenderer.fill();
+			}
+			this._waveformRenderer.closePath();
+		}
+
+		if (this.autoAdjust) {
+			if (this._needsAdjusting) {
+				this._needsAdjusting = false;
+			}
+			else {
+				this._asymmetry = scaleY * (yPeakPos + yPeakNeg);
+				this._peakToPeak = scaleY * (yPeakPos - yPeakNeg);
+				this._needsAdjusting = this._asymmetry !== 0 || this._peakToPeak > height;
+				if (this._needsAdjusting) {
+					this._adjustGainAndOffset();
+					this._needsAdjusting = false;
+				}
+			}
+		}
+	}
+
+	private _initGraph() {
+		// set up canvas renderers
+		this._backgroundRenderer = this._backgroundCanvas.getContext('2d');
+		this._waveformRenderer = this._waveformCanvas.getContext('2d');
+		this._backgroundCanvas.style.backgroundColor = this.BLACK;
 	}
 
 	/**
@@ -420,141 +653,6 @@ export class FourierSynth {
 	}
 
 	/**
-	 * Draw the waveform derived from the data.
-	 */
-	private _plot() {
-		if (!this._canvas || this.hideGraph) {
-			return;
-		}
-
-		// set the canvas size
-		const maxX = this._canvas.offsetWidth;
-		const maxY = this._canvas.offsetHeight;
-		const halfY = maxY / 2;
-		this._canvas.width = maxX;
-		this._canvas.height = maxY;
-
-		// fill background
-		this._renderer.fillStyle = this.backgroundColor || this.BLACK;
-		this._renderer.fillRect(0, 0, maxX, maxY);
-
-		// the length of one waveform in pixels
-		const wavelength = maxX / this.periods;
-
-		// draw grid dots
-		if (!this.hideGridDots) {
-			let gridSize = wavelength / this.harmonics;
-			// make grid size no smaller than 10, but aligned to wavelength
-			for (let harmonic = this.harmonics - 1; gridSize < 10; harmonic--) {
-				gridSize = wavelength / harmonic;
-			}
-
-			// figure out where to start vertically so that the dot grid is centered
-			const startY = halfY % gridSize;
-
-			this._renderer.fillStyle = this.axesColor || this.BLUE;
-			for (let x = gridSize; x < maxX; x += gridSize) {
-				for (let y = startY; y < maxY; y += gridSize) {
-					this._renderer.beginPath();
-					this._renderer.arc(x, y, 0.5, 0, Math.PI * 2, true);
-					this._renderer.fill();
-					this._renderer.closePath();
-				}
-			}
-		}
-
-		this._renderer.lineWidth = 2;
-		this._renderer.strokeStyle = this.axesColor || this.BLUE;
-		this._renderer.beginPath();
-
-		// draw x axis
-		this._renderer.beginPath();
-		this._renderer.moveTo(0, halfY);
-		this._renderer.lineTo(maxX, halfY);
-		this._renderer.stroke();
-		this._renderer.closePath();
-
-		// draw wave divider lines
-		if (!this.hideDividers) {
-			this._renderer.beginPath();
-			for (let x = wavelength; x < maxX; x += wavelength) {
-				this._renderer.moveTo(x, 0);
-				this._renderer.lineTo(x, maxY);
-			}
-			this._renderer.stroke();
-			this._renderer.closePath();
-		}
-
-		// draw wave
-
-		this._renderer.lineWidth = this.lineWidth;
-		this._renderer.strokeStyle = this.waveColor || this.RED;
-		this._renderer.beginPath();
-
-		const timeBase = wavelength / (2.0 * Math.PI);
-
-		// scale the y values so that at max gain a single harmonic wave would occupy the full height of the graph
-		const scaleY = this.gain * (halfY / this.CONTROL_RANGE);
-
-		// y starts at the vertical center +/- the DC offset which can be +/- one full wave
-		let yCenter = halfY - (scaleY * this._data.cos0.value / this.gain);
-
-		let yPeakPos = 0;
-		let yPeakNeg = 0;
-
-		let originY: number;
-		for (let x = 0; x <= maxX; x++) {
-			// start at zero
-			let y = 0.0;
-
-
-			// add fourier series modificationss
-			const xTime = (x % wavelength) / timeBase;
-			for (let harmonic = 1; harmonic <= this.harmonics; harmonic++) {
-				const xHarmonic = harmonic * xTime;
-				// invert because the canvas is "upside down" relative to graph +/-
-				y -= this._data[`cos${harmonic}`].value * Math.cos(xHarmonic);
-				y -= this._data[`sin${harmonic}`].value * Math.sin(xHarmonic);
-			}
-
-			yPeakPos = Math.max(yPeakPos, y);
-			yPeakNeg = Math.min(yPeakNeg, y);
-
-			// adjust by scale & gain, and offset
-			y = yCenter + (scaleY * y);
-
-			this._asymmetry = Math.max(this._asymmetry, Math.max(0, y - halfY));
-
-			if (x === 0) {
-				originY = y;
-				this._renderer.moveTo(x, y);
-			}
-			else {
-				this._renderer.lineTo(x, y);
-			}
-		}
-
-		if (this.autoGain || this.autoOffset) {
-			// yCenter -= yPeakPos - yPeakNeg;
-		}
-		// this._asymmetry = yCenter + scaleY * -(yPeakPos + yPeakNeg);
-		this._peakToPeak = scaleY * (yPeakPos - yPeakNeg);
-		this._renderer.stroke();
-		this._renderer.closePath();
-
-		// wave start/end-point dots
-		if (!this.hideEnpoints) {
-			this._renderer.fillStyle = this.endpointColor || this.GREEN;
-			this._renderer.beginPath();
-			for (let x = 0; x <= maxX; x += wavelength) {
-				this._renderer.arc(x, originY, 3, -Math.PI, Math.PI, false);
-				this._renderer.fill();
-			}
-			this._renderer.closePath();
-		}
-	}
-
-	/**
 	 * Reset all or one of the data controls.
 	 * @param id id of individual control to reset
 	 */
@@ -574,31 +672,18 @@ export class FourierSynth {
 		this._update();
 	}
 
-	private _fitToCanvas() {
-		if (this._asymmetry !== 0) {
-			console.log(this._asymmetry);
-			this._data.cos0.value -= this.CONTROL_RANGE * this._asymmetry / this._canvas.height / 2;
-			console.log(this._data.cos0.value);
-			this._plot();
-		}
-		// if (this._peakToPeak !== this._canvas.height) {
-		// 	// console.log(this._peakToPeak / this._canvas.height);
-		// 	this.gain /= (this._peakToPeak / this._canvas.height);
-		// }
-	}
-
 	/**
 	 * Update the waveform and sound stream.
 	 */
 	private _update() {
 		// graph
-		this._plot();
+		this._drawWaveform();
 
 		// sound
 		this._play();
 
 		// trigger render
-		this.updates++;
+		this.updateCount++;
 	}
 
 	/**
@@ -631,38 +716,19 @@ export class FourierSynth {
 		// create the harmonic control row
 		const control = (id: string) => {
 			const control = this._data[id];
-			const slider = () => 'cos0' === id
-				? <span class="row">
-					<input key={`slider${id}`}
-						class="slider"
-						disabled={this.autoOffset}
-						type="range"
-						min={-this.CONTROL_RANGE}
-						max={this.CONTROL_RANGE}
-						step={0.1}
-						value={control.value}
-						onInput={event => this._updateData(event.currentTarget as HTMLInputElement, id)}
-					></input>
-					<input class="checkbox"
-						type="checkbox"
-						checked={this.autoOffset}
-						onInput={event => this.autoOffset = (event.currentTarget as HTMLInputElement).checked}
-					></input>
-					<label class="auto-label">Auto</label>
-				</span>
-				: <input key={`slider${id}`} class="slider"
+			return [
+				<label key={`label${id}`} class="control-label" innerHTML={control.label}></label>,
+				<input key={`slider${id}`} class="slider"
+					disabled={this.autoAdjust && 'cos0' === id}
 					type="range"
 					min={-this.CONTROL_RANGE}
 					max={this.CONTROL_RANGE}
 					step={0.1}
 					value={control.value}
 					onInput={event => this._updateData(event.currentTarget as HTMLInputElement, id)}
-				></input>
-			;
-			return [
-				<label key={`label${id}`} class="control-label" innerHTML={control.label}></label>,
-				slider(),
+				></input>,
 				<input key={`field${id}`} class="field"
+					readonly={this.autoAdjust && 'cos0' === id}
 					type="number"
 					min={-this.CONTROL_RANGE}
 					max={this.CONTROL_RANGE}
@@ -670,7 +736,7 @@ export class FourierSynth {
 					value={this._fieldFormatter.format(control.value)}
 					onChange={event => this._updateData(event.currentTarget as HTMLInputElement, id)}
 				></input>,
-				<button key={`clear${id}`} class="clear" onClick={() => this._resetData(id)}>X</button>
+				<button key={`clear${id}`} class="clear" disabled={this.autoAdjust && 'cos0' === id} onClick={() => this._resetData(id)}>X</button>
 			];
 		};
 
@@ -688,7 +754,19 @@ export class FourierSynth {
 			<Host>
 				<div class="container">
 					{this.mainTitle && <h1>{this.mainTitle}</h1>}
+					{/* controls header */}
 					<div class="header">
+						<span class="feature-container">
+							<label class="feature-label">{this.audioLabel}</label>
+							<input class="toggle"
+								type="range"
+								min={0}
+								max={1}
+								step={1}
+								value={this.enableAudio ? 1 : 0}
+								onInput={event => this.enableAudio = (event.currentTarget as HTMLInputElement).value === '1'}
+							></input>
+						</span>
 						{this.fundamentalLabel && <span class="feature-container">
 							<label class="feature-label">{this.fundamentalLabel}</label>
 							<input class="fundamental"
@@ -711,18 +789,8 @@ export class FourierSynth {
 								onChange={event => this.harmonics = this._checkHarmonicsBounds(Number((event.currentTarget as HTMLInputElement).value))}
 							></input>
 						</span>}
-						<span class="feature-container">
-							<label class="feature-label">{this.audioLabel}</label>
-							<input class="toggle"
-								type="range"
-								min={0}
-								max={1}
-								step={1}
-								value={this.enableAudio ? 1 : 0}
-								onInput={event => this.enableAudio = (event.currentTarget as HTMLInputElement).value === '1'}
-							></input>
-						</span>
 					</div>
+					{/* controls */}
 					<div class="controls">
 						<div class="row">
 							<div class="column">
@@ -745,98 +813,117 @@ export class FourierSynth {
 						<div class="row gain">
 							<label class="control-label">{this.gainLabel}</label>
 							<input class="slider"
+								disabled={this.autoAdjust}
 								type="range"
-								disabled={this.autoGain}
 								min={0}
 								max={1.0}
 								step={0.001}
 								value={this.gain}
 								onInput={event => this.gain = Number((event.currentTarget as HTMLInputElement).value)}
 							></input>
-							{/* <input class="checkbox"
-								type="checkbox"
-								checked={this.autoGain}
-								onInput={event => this.autoGain = (event.currentTarget as HTMLInputElement).checked}
-							></input>
-							<label class="auto-label">Auto</label> */}
-							<button onClick={() => this._fitToCanvas()}>Auto</button>
 							<input class="field"
 								readonly
 								value={`${this._gainFormatter.format(20 * Math.log10(this.gain))}dB`}
 							></input>
-							<button class="clear" onClick={() => this.gain = this.GAIN_DEFAULT}>X</button>
+							<button class="clear" disabled={this.autoAdjust} onClick={() => this.gain = this.GAIN_DEFAULT}>X</button>
 						</div>
 						<button class="reset" onClick={() => this._resetData()}>Reset</button>
 					</div>
-					{(this.graphLabel || this.periodsLabel || this.dividersLabel || this.endpointsLabel || this.gridDotsLabel) && <div class="header">
-						{this.graphLabel && <span class="feature-container">
-							<label class="feature-label">{this.graphLabel}</label>
-							<input class="toggle" title="Show the Fourier waveform graph"
-								type="range"
-								min={0}
-								max={1}
-								step={1}
-								value={this.hideGraph ? 0 : 1}
-								onInput={event => this.hideGraph = (event.currentTarget as HTMLInputElement).value === '0'}
-							></input>
-						</span>}
-						{this.periodsLabel && <span class="feature-container">
-							<label class="feature-label">{this.periodsLabel}</label>
-							<input class="number" title="Number of fundamental wave periods to display"
-								type="number"
-								min={1}
-								max={5}
-								value={this.periods}
-								onChange={event => this.periods = Number((event.currentTarget as HTMLInputElement).value)}
-							></input>
-						</span>}
-						{this.dividersLabel && <span class="feature-container">
-							<label class="feature-label">{this.dividersLabel}</label>
-							<input class="toggle" title="Draw vertical lines between the fundamental wave periods"
-								type="range"
-								min={0}
-								max={1}
-								step={1}
-								value={this.hideDividers ? 0 : 1}
-								onInput={event => this.hideDividers = (event.currentTarget as HTMLInputElement).value === '0'}
-							></input>
-						</span>}
-						{this.endpointsLabel && <span class="feature-container">
-							<label class="feature-label">{this.endpointsLabel}</label>
-							<input class="toggle" title="Draw dots where the fundamental wave periods start and stop"
-								type="range"
-								min={0}
-								max={1}
-								step={1}
-								value={this.hideEnpoints ? 0 : 1}
-								onInput={event => this.hideEnpoints = (event.currentTarget as HTMLInputElement).value === '0'}
-							></input>
-						</span>}
-						{this.gridDotsLabel && <span class="feature-container">
-							<label class="feature-label">{this.gridDotsLabel}</label>
-							<input class="toggle" title="Draw the harmonic grid dots on the graph"
-								type="range"
-								min={0}
-								max={1}
-								step={1}
-								value={this.hideGridDots ? 0 : 1}
-								onInput={event => this.hideGridDots = (event.currentTarget as HTMLInputElement).value === '0'}
-							></input>
-						</span>}
-						{this.lineWidthLabel && <span class="feature-container">
-							<label class="feature-label">{this.lineWidthLabel}</label>
-							<input class="number" title="Width of the wave plot line"
-								type="number"
-								min={1}
-								max={5}
-								step={1}
-								value={this.lineWidth}
-								onInput={event => this.lineWidth = Number((event.currentTarget as HTMLInputElement).value)}
-							></input>
-						</span>}
-					</div>}
+					{/* graph header */}
+					{(this.graphLabel || this.autoAdjustLabel) &&
+						<div class="header">
+							{this.graphLabel && <span class="feature-container">
+								<label class="feature-label">{this.graphLabel}</label>
+								<input class="toggle"
+									type="range"
+									min={0}
+									max={1}
+									step={1}
+									value={this.hideGraph ? 0 : 1}
+									onInput={event => this.hideGraph = (event.currentTarget as HTMLInputElement).value === '0'}
+								></input>
+							</span>}
+							{!this.hideGraph && this.autoAdjustLabel && <span class="feature-container">
+									<label class="feature-label">{this.autoAdjustLabel}</label>
+									<input class="toggle"
+										type="range"
+										min={0}
+										max={1}
+										step={1}
+										value={this.autoAdjust ? 1 : 0}
+										onInput={event => this.autoAdjust = (event.currentTarget as HTMLInputElement).value === '1'}
+									></input>
+								</span>
+							}
+						</div>
+					}
+					{/* graph controls */}
+					{(this.lineWidthLabel || this.periodsLabel || this.dividersLabel || this.endpointsLabel || this.gridDotsLabel) &&
+						<div class="header" style={this.hideGraph && {'display': 'none'}}>
+							<div class="row" style={{'margin-right': '16px'}}>
+								{this.lineWidthLabel && <span class="feature-container">
+									<label class="feature-label small">{this.lineWidthLabel}</label>
+									<input class="number"
+										type="number"
+										min={1}
+										max={5}
+										step={1}
+										value={this.lineWidth}
+										onInput={event => this.lineWidth = Number((event.currentTarget as HTMLInputElement).value)}
+									></input>
+								</span>}
+								{this.periodsLabel && <span class="feature-container">
+									<label class="feature-label small">{this.periodsLabel}</label>
+									<input class="number"
+										type="number"
+										min={1}
+										max={5}
+										value={this.periods}
+										onChange={event => this.periods = Number((event.currentTarget as HTMLInputElement).value)}
+									></input>
+								</span>}
+							</div>
+							<div class="row">
+								{this.endpointsLabel && <span class="feature-container">
+									<label class="feature-label small">{this.endpointsLabel}</label>
+									<input class="toggle"
+										type="range"
+										min={0}
+										max={1}
+										step={1}
+										value={this.hideEnpoints ? 0 : 1}
+										onInput={event => this.hideEnpoints = (event.currentTarget as HTMLInputElement).value === '0'}
+									></input>
+								</span>}
+								{this.dividersLabel && <span class="feature-container">
+									<label class="feature-label small">{this.dividersLabel}</label>
+									<input class="toggle"
+										type="range"
+										min={0}
+										max={1}
+										step={1}
+										value={this.hideDividers ? 0 : 1}
+										onInput={event => this.hideDividers = (event.currentTarget as HTMLInputElement).value === '0'}
+									></input>
+								</span>}
+								{this.gridDotsLabel && <span class="feature-container">
+									<label class="feature-label small">{this.gridDotsLabel}</label>
+									<input class="toggle"
+										type="range"
+										min={0}
+										max={1}
+										step={1}
+										value={this.hideGridDots ? 0 : 1}
+										onInput={event => this.hideGridDots = (event.currentTarget as HTMLInputElement).value === '0'}
+									></input>
+								</span>}
+							</div>
+						</div>
+					}
+					{/* graph */}
 					<div class="graph" style={this.hideGraph && {visibility: 'hidden'}}>
-						<canvas ref={el => this._canvas = el}></canvas>
+						<canvas ref={el => this._backgroundCanvas = el}></canvas>
+						<canvas id="waveform" ref={el => this._waveformCanvas = el}></canvas>
 					</div>
 				</div>
 			</Host>
