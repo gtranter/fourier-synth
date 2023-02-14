@@ -61,6 +61,15 @@
 		}
 	}
 
+	.column-label {
+		&.cos {
+			grid-column: 1 / span 4;
+		}
+		&.sin {
+			grid-column: 6 / span 4;
+		}
+	}
+
 	.feature-label::after,
 	.control-label::after  {
 		content: ':';
@@ -128,9 +137,20 @@
 		align-items: stretch;
 	}
 
+	.offset,
+	.gain,
+	.reset {
+		margin-top: 8px;
+	}
+
+	.reset {
+		height: 24px;
+	}
+
 	.control-grid {
+		flex: 1 1 100%;
 		display: grid;
-		grid-template-columns: 0fr 1fr 0fr 0fr;
+		grid-template-columns: 0fr 1fr repeat(4, 0fr) 1fr repeat(2, 0fr);
 	}
 
 	.control-label,
@@ -170,27 +190,16 @@
 		text-align: center;
 	}
 
-	.frequencies {
-		width: auto;
-		box-sizing: border-box;
+	.frequency {
 		margin: 0 16px;
 		padding: 0 16px;
 		border-left: 2px solid #999;
 		border-right: 2px solid #999;
-		align-self: flex-end;
+		justify-self: stretch;
 	}
 
-	.frequency {
-		justify-self: flex-end;
-	}
-
-	.gain,
-	.reset {
-		margin-top: 16px;
-
-		.field {
-			width: 56px;
-		}
+	.gain .field {
+		width: 56px;
 	}
 
 	.graph {

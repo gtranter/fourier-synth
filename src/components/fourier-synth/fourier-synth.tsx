@@ -189,11 +189,17 @@ export class FourierSynth {
 		}
 		else {
 			for (let harmonic = oldValue + 1; harmonic <= newValue; harmonic++) {
-				this._data[`cos${harmonic}`] = {
-					label: `A<sub>${harmonic}</sub>`,
-					value: 0
-				};
-				if (harmonic > 0) {
+				if (harmonic === 0) {
+					this._data.cos0 = {
+						label: 'Offset',
+						value: 0
+					};
+				}
+				else {
+					this._data[`cos${harmonic}`] = {
+						label: `A<sub>${harmonic}</sub>`,
+						value: 0
+					};
 					this._data[`sin${harmonic}`] = {
 						label: `B<sub>${harmonic}</sub>`,
 						value: 0
@@ -739,11 +745,12 @@ export class FourierSynth {
 	render() {
 		// create the harmonic control row
 		const control = (id: string) => {
+			const offset = 'cos0' === id;
 			const control = this._data[id];
 			return [
-				<label key={`label${id}`} class="control-label" innerHTML={control.label}></label>,
-				<input key={`slider${id}`} class="slider"
-					disabled={this.autoAdjust && 'cos0' === id}
+				<label key={`label-${id}`} class="control-label" innerHTML={control.label}></label>,
+				<input key={`slider-${id}`} class={{'slider': true, 'offset': offset}}
+					disabled={this.autoAdjust && offset}
 					type="range"
 					min={-this.CONTROL_RANGE}
 					max={this.CONTROL_RANGE}
@@ -751,8 +758,8 @@ export class FourierSynth {
 					value={control.value}
 					onInput={event => this._updateData(event.currentTarget as HTMLInputElement, id)}
 				></input>,
-				<input key={`field${id}`} class="field"
-					readonly={this.autoAdjust && 'cos0' === id}
+				<input key={`field-${id}`} class="field"
+					readonly={this.autoAdjust && offset}
 					type="number"
 					min={-this.CONTROL_RANGE}
 					max={this.CONTROL_RANGE}
@@ -760,19 +767,26 @@ export class FourierSynth {
 					value={this._fieldFormatter.format(control.value)}
 					onChange={event => this._updateData(event.currentTarget as HTMLInputElement, id)}
 				></input>,
-				<button key={`clear${id}`} class="clear" disabled={this.autoAdjust && 'cos0' === id} onClick={() => this._resetData(id)}>X</button>
+				<button key={`clear-${id}`} class="clear" disabled={this.autoAdjust && offset} onClick={() => this._resetData(id)}>X</button>
 			];
 		};
 
-		// create the frequencies column
-		const frequencies = () => {
-			return Object.keys(this._data).map(id => {
-				const harmonic = Number(id.substring(3));
-				if (id.startsWith('cos') && harmonic > 0) {
-					return <div key={`frequency-${harmonic}`} class="frequency">{harmonic * this.fundamental}Hz</div>;
-				}
-			}
-		)};
+		const controls = () => {
+			return [
+				this.cosTitle && this.sinTitle && <label class="column-label cos">{this.cosTitle}</label>,
+				this.cosTitle && this.sinTitle && <label class="column-label sin">{this.sinTitle}</label>,
+				Object.keys(this._data).map(id => {
+					if (id.startsWith('sin')) {
+						const harmonic = Number(id.substring(3));
+						return [
+							control(`cos${harmonic}`),
+							<div key={`frequency-${harmonic}`} class="frequency">{harmonic * this.fundamental}Hz</div>,
+							control(`sin${harmonic}`)
+						];
+					}
+				})
+			];
+		}
 
 		return (
 			<Host>
@@ -816,23 +830,11 @@ export class FourierSynth {
 					</div>
 					{/* controls */}
 					<div class="controls">
-						<div class="row">
-							<div class="column">
-								{this.cosTitle && <label class="column-label">{this.cosTitle}</label>}
-								<div class="control-grid">
-									{Object.keys(this._data).map(id => id.startsWith('cos') && control(id))}
-								</div>
-							</div>
-							<div class="column frequencies">
-								{frequencies()}
-							</div>
-							<div class="column">
-								{this.sinTitle && <label class="column-label">{this.sinTitle}</label>}
-								<div class="row">&nbsp;</div>{/* spacer row */}
-								<div class="control-grid">
-									{Object.keys(this._data).map(id => id.startsWith('sin') && control(id))}
-								</div>
-							</div>
+						<div class="row control-grid">
+							{controls()}
+						</div>
+						<div class="row offset">
+							{control('cos0')}
 						</div>
 						<div class="row gain">
 							<label class="control-label">{this.gainLabel}</label>
@@ -908,17 +910,6 @@ export class FourierSynth {
 								</span>}
 							</div>
 							<div class="row">
-							{this.endpointsLabel && <span class="feature-container">
-									<label class="feature-label small">{this.endpointsLabel}</label>
-									<input class="toggle"
-										type="range"
-										min={0}
-										max={1}
-										step={1}
-										value={this.hideEndpoints ? 0 : 1}
-										onInput={event => this.hideEndpoints = (event.currentTarget as HTMLInputElement).value === '0'}
-									></input>
-								</span>}
 								{this.offsetLabel && <span class="feature-container">
 									<label class="feature-label small">{this.offsetLabel}</label>
 									<input class="toggle"
@@ -928,6 +919,17 @@ export class FourierSynth {
 										step={1}
 										value={this.hideOffset ? 0 : 1}
 										onInput={event => this.hideOffset = (event.currentTarget as HTMLInputElement).value === '0'}
+									></input>
+								</span>}
+								{this.endpointsLabel && <span class="feature-container">
+									<label class="feature-label small">{this.endpointsLabel}</label>
+									<input class="toggle"
+										type="range"
+										min={0}
+										max={1}
+										step={1}
+										value={this.hideEndpoints ? 0 : 1}
+										onInput={event => this.hideEndpoints = (event.currentTarget as HTMLInputElement).value === '0'}
 									></input>
 								</span>}
 								{this.dividersLabel && <span class="feature-container">
