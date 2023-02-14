@@ -186,6 +186,9 @@ export class FourierSynth {
 				delete this._data[`cos${harmonic}`];
 				delete this._data[`sin${harmonic}`];
 			}
+
+			this._drawBackground();
+			this._update();
 		}
 		else {
 			for (let harmonic = oldValue + 1; harmonic <= newValue; harmonic++) {
@@ -206,9 +209,9 @@ export class FourierSynth {
 					};
 				}
 			}
-		}
 
-		this._update();
+			this._drawBackground();
+		}
 	}
 
 	/**
@@ -429,9 +432,9 @@ export class FourierSynth {
 
 		// draw grid dots
 		if (!this.hideGridDots) {
-			let gridSize = wavelength / this.harmonics;
 			// make grid size no smaller than 10, but aligned to wavelength
-			for (let harmonic = this.harmonics - 1; gridSize < 10; harmonic--) {
+			let gridSize = wavelength / this.harmonics;
+			for (let harmonic = Math.min(this.harmonics, Math.floor(wavelength / 10)); gridSize < 10; harmonic--) {
 				gridSize = wavelength / harmonic;
 			}
 
