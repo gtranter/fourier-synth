@@ -121,7 +121,7 @@ export class FourierSynth {
 	}
 
 	/**
-	 * Title text for the cosine controls.
+	 * Title text for the cosine controls.  Set text empty to hide the title.
 	 */
 	@Prop({reflect: true}) cosTitle: string = 'Cos';
 
@@ -336,7 +336,7 @@ export class FourierSynth {
 	@Prop({reflect: true}) resetText: string = 'Reset';
 
 	/**
-	 * Title text for the sine controls.
+	 * Title text for the sine controls. Set text empty to hide the title.
 	 */
 	@Prop({reflect: true}) sinTitle: string = 'Sin';
 
@@ -399,7 +399,7 @@ export class FourierSynth {
 	}
 
 	private _drawBackground() {
-		if (!this._backgroundCanvas || !this._backgroundRenderer) {
+		if (this.hideGraph || !this._backgroundCanvas || !this._backgroundRenderer) {
 			return;
 		}
 
@@ -818,7 +818,7 @@ export class FourierSynth {
 					<div class="controls">
 						<div class="row">
 							<div class="column">
-								<label class="column-label">{this.cosTitle}</label>
+								{this.cosTitle && <label class="column-label">{this.cosTitle}</label>}
 								<div class="control-grid">
 									{Object.keys(this._data).map(id => id.startsWith('cos') && control(id))}
 								</div>
@@ -827,7 +827,7 @@ export class FourierSynth {
 								{frequencies()}
 							</div>
 							<div class="column">
-								<label class="column-label">{this.sinTitle}</label>
+								{this.sinTitle && <label class="column-label">{this.sinTitle}</label>}
 								<div class="row">&nbsp;</div>{/* spacer row */}
 								<div class="control-grid">
 									{Object.keys(this._data).map(id => id.startsWith('sin') && control(id))}
