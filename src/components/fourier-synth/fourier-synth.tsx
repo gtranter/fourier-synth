@@ -33,36 +33,17 @@ export class FourierSynth {
 	private readonly GREEN: string = 'rgb(0, 255, 0)';
 	private readonly RED: string = 'rgb(255, 0, 0)';
 
-	// the calculated assymetry of the last plot
-	private _asymmetry = 0.0;
-
 	private _audioContext: AudioContext;
-
 	private _backgroundCanvas: HTMLCanvasElement;
-
 	private _backgroundRenderer: CanvasRenderingContext2D;
-
 	private _data: Record<string, FourierData> = {};
-
 	private _fieldFormatter = Intl.NumberFormat(navigator.language, {minimumFractionDigits: 1, maximumFractionDigits: 1});
-
-	private _gain: GainNode;
-
+	private _gainNode: GainNode;
 	private _gainFormatter = Intl.NumberFormat(navigator.language, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-
-	private _needsAdjusting: boolean = false;
-
+	private _isAutoAdjusting: boolean = false;
 	private _oscillator: OscillatorNode;
-
-	// the peak-to-peak size of the last plot;
-	private _peakToPeak: number;
-
-	private _plotCount: number = 0;
-
 	private _resizeTimeout: number;
-
 	private _waveformCanvas: HTMLCanvasElement;
-
 	private _waveformRenderer: CanvasRenderingContext2D;
 
 	@Element() hostElement: HTMLFourierSynthElement;
@@ -88,8 +69,8 @@ export class FourierSynth {
 	@Watch('gain')
 	gainChange(newValue: number) {
 		this.gain = newValue = Math.max(0.0, Math.min(newValue, 1.0));
-		if (this._gain) {
-			this._gain.gain.value = newValue;
+		if (this._gainNode) {
+			this._gainNode.gain.value = newValue;
 		}
 		this._drawWaveform();
 	}
@@ -106,17 +87,20 @@ export class FourierSynth {
 
 	/**
 	 * Automatically adjust the gain and DC offset (cos0) to match the wave.
+	 * This doubles computational effort and therefore impacts performance by ~50%.
 	 */
 	@Prop({mutable: true}) autoAdjust: boolean = false;
 	@Watch('autoAdjust')
-	autoAdjustChange() {
-		this._drawWaveform();
+	autoAdjustChange(newValue: boolean) {
+		if (newValue) {
+			this._drawWaveform();
+		}
 	}
 
 	/**
 	 * Text for the auto adjust control label.
 	 */
-	@Prop({reflect: true}) autoAdjustLabel: string = 'Auto adjust';
+	@Prop({reflect: true}) autoAdjustLabel: string = 'Auto-adjust';
 
 	/**
 	 * Color of graph background lines and dots. Use a CSS color value.
@@ -238,8 +222,8 @@ export class FourierSynth {
 	/**
 	 * Don't display the fundamental wave endpoint dots.
 	 */
-	@Prop({mutable: true}) hideEnpoints: boolean = false;
-	@Watch('hideEnpoints')
+	@Prop({mutable: true}) hideEndpoints: boolean = false;
+	@Watch('hideEndpoints')
 	hideEndpointsChange() {
 		this._drawWaveform();
 	}
@@ -273,7 +257,7 @@ export class FourierSynth {
 	}
 
 	/**
-	 * Color of the waveform line. Use a CSS color value.
+	 * Color of the waveform plot line. Use a CSS color value.
 	 */
 	@Prop() lineColor: string = this.RED;
 	@Watch('lineColor')
@@ -282,7 +266,7 @@ export class FourierSynth {
 	}
 
 	/**
-	 * The width of the wave plot line.
+	 * The width of the waveform plot line.
 	 */
 	@Prop({mutable: true}) lineWidth: number = 3;
 	@Watch('lineWidth')
@@ -317,7 +301,7 @@ export class FourierSynth {
 	}
 
 	/**
-	 * Color of the graph DC offset line and wave endpoint dots. Use a CSS color value.
+	 * Color of the graph DC offset line and waveform endpoint dots. Use a CSS color value.
 	 */
 	@Prop() offsetColor: string = this.GREEN;
 	@Watch('offsetColor')
@@ -331,9 +315,9 @@ export class FourierSynth {
 	@Prop({reflect: true}) offsetLabel: string = 'Offset';
 
 	/**
-	 * Number of wave periods to display in the graph. From 1 to 5.
+	 * Number of fundamental wave periods to display in the graph. From 1 to 5.
 	 */
-	@Prop({reflect: true, mutable: true}) periods: number = 3;
+	@Prop({mutable: true}) periods: number = 3;
 	@Watch('periods')
 	periodsChange(newValue: number) {
 		this.periods = newValue = Math.max(1, Math.min(newValue, 5));
@@ -386,8 +370,12 @@ export class FourierSynth {
 			});
 		});
 
+		// set up canvas renderers
+		this._backgroundRenderer = this._backgroundCanvas.getContext('2d');
+		this._waveformRenderer = this._waveformCanvas.getContext('2d');
+		this._backgroundCanvas.style.backgroundColor = this.BLACK;
+
 		// draw graph first time
-		this._initGraph();
 		this._drawBackground();
 		this._drawWaveform();
 
@@ -399,30 +387,6 @@ export class FourierSynth {
 				this._drawWaveform();
 			}, 100);
 		});
-	}
-
-	private _adjustGainAndOffset() {
-		let update = false;
-		let gain: number;
-		if (this._peakToPeak !== this._waveformCanvas.height) {
-			update = true;
-			console.log(this._peakToPeak / this._waveformCanvas.height);
-			gain = this.gain / (this._peakToPeak / this._waveformCanvas.height);
-		}
-		if (this._asymmetry !== 0) {
-			update = true;
-			this._data.cos0.value = this.CONTROL_RANGE * (this._asymmetry / this._waveformCanvas.height);
-			console.log(this._asymmetry, this._data.cos0.value);
-		}
-		if (update) {
-			if (gain) {
-				this.gain = gain;
-			}
-			else {
-				this._drawWaveform();
-				this.updateCount++;
-			}
-		}
 	}
 
 	/**
@@ -438,8 +402,6 @@ export class FourierSynth {
 		if (!this._backgroundCanvas || !this._backgroundRenderer) {
 			return;
 		}
-
-		console.log('draw background');
 
 		// get the canvas size
 		const width = this._backgroundCanvas.offsetWidth;
@@ -506,8 +468,6 @@ export class FourierSynth {
 		if (this.hideGraph || !this._waveformCanvas || !this._waveformRenderer) {
 			return;
 		}
-
-		console.log('draw waveform', ++this._plotCount);
 
 		// get the canvas size
 		const width = this._waveformCanvas.offsetWidth;
@@ -590,7 +550,7 @@ export class FourierSynth {
 		this._waveformRenderer.closePath();
 
 		// wave start/end-point dots
-		if (!this.hideEnpoints) {
+		if (!this.hideEndpoints) {
 			this._waveformRenderer.beginPath();
 			for (let x = 0; x <= width; x += wavelength) {
 				this._waveformRenderer.arc(x, originY, 3, -Math.PI, Math.PI, false);
@@ -599,27 +559,11 @@ export class FourierSynth {
 			this._waveformRenderer.closePath();
 		}
 
-		if (this.autoAdjust) {
-			if (this._needsAdjusting) {
-				this._needsAdjusting = false;
-			}
-			else {
-				this._asymmetry = scaleY * (yPeakPos + yPeakNeg);
-				this._peakToPeak = scaleY * (yPeakPos - yPeakNeg);
-				this._needsAdjusting = this._asymmetry !== 0 || this._peakToPeak > height;
-				if (this._needsAdjusting) {
-					this._adjustGainAndOffset();
-					this._needsAdjusting = false;
-				}
-			}
+		if (this.autoAdjust && !this._isAutoAdjusting) {
+			const asymmetry = scaleY * (yPeakPos + yPeakNeg);
+			const peakToPeak = scaleY * (yPeakPos - yPeakNeg);
+			this._optimizeGainAndOffset(peakToPeak, asymmetry, height);
 		}
-	}
-
-	private _initGraph() {
-		// set up canvas renderers
-		this._backgroundRenderer = this._backgroundCanvas.getContext('2d');
-		this._waveformRenderer = this._waveformCanvas.getContext('2d');
-		this._backgroundCanvas.style.backgroundColor = this.BLACK;
 	}
 
 	/**
@@ -636,6 +580,60 @@ export class FourierSynth {
 	}
 
 	/**
+	 * Calculate and apply the ideal gain and DC offset for a waveform so that it does not extend outside the graph area.
+	 * This forces a second iteration to render the waveform, so performance in the browser is reduced by 50%.
+	 * @param peakToPeak - rendered size of waveform
+	 * @param asymmetry - difference between positive and negative peaks
+	 * @param height - height of the graph area
+	 */
+	private _optimizeGainAndOffset(peakToPeak: number, asymmetry: number, height: number) {
+		if (height === 0) {
+			return;
+		}
+
+		if (peakToPeak === 0) {
+			// reset offset and gain
+			this._data.cos0.value = 0.0;
+			this.gain = this.GAIN_DEFAULT;
+		}
+		else {
+			// determine gain
+			let gain: number;
+			if (peakToPeak !== height) {
+				gain = Math.min(this.gain * height / peakToPeak, 1.0);
+				if (gain === this.gain) {
+					gain = undefined;
+				}
+			}
+			console.log('gain', gain, this.gain);
+
+			// determine DC offset
+			let offset = this.CONTROL_RANGE * (asymmetry / height);
+			if (gain != null) {
+				offset *= (gain / this.gain);
+			}
+			// 1 digit precision
+			offset = Number(offset.toFixed(1));
+			// fix javascript number weirdness
+			if (offset === -0.0) {
+				offset = 0.0;
+			}
+			this._data.cos0.value = offset;
+
+			// render
+			this._isAutoAdjusting = true;
+			if (gain != null && gain !== this.gain) {
+				this.gain = gain;
+			}
+			else {
+				this._drawWaveform();
+				this.updateCount++;
+			}
+			this._isAutoAdjusting = false;
+		}
+	}
+
+	/**
 	 * Generate audio stream from the data.
 	 */
 	private _play() {
@@ -645,10 +643,10 @@ export class FourierSynth {
 		if (!this._audioContext) {
 			// first time - set up audio
 			this._audioContext = new AudioContext();
-			this._gain = this._audioContext.createGain();
-			this._gain.gain.value = this.gain;
+			this._gainNode = this._audioContext.createGain();
+			this._gainNode.gain.value = this.gain;
 			this._oscillator = this._audioContext.createOscillator();
-			this._oscillator.connect(this._gain).connect(this._audioContext.destination);
+			this._oscillator.connect(this._gainNode).connect(this._audioContext.destination);
 			this._oscillator.start();
 		}
 
@@ -679,8 +677,8 @@ export class FourierSynth {
 	}
 
 	/**
-	 * Reset all or one of the data controls.
-	 * @param id id of individual control to reset
+	 * Reset all or one of the harmonic's data.
+	 * @param id id of individual harmonic to reset
 	 */
 	private _resetData(id?: string) {
 		if (id) {
@@ -689,10 +687,10 @@ export class FourierSynth {
 		}
 		else {
 			// reset all
-			this.gain = this.GAIN_DEFAULT;
 			Object.values(this._data).forEach(data => {
 				data.value = 0;
 			});
+			this.gain = this.GAIN_DEFAULT;
 		}
 
 		this._update();
@@ -917,8 +915,8 @@ export class FourierSynth {
 										min={0}
 										max={1}
 										step={1}
-										value={this.hideEnpoints ? 0 : 1}
-										onInput={event => this.hideEnpoints = (event.currentTarget as HTMLInputElement).value === '0'}
+										value={this.hideEndpoints ? 0 : 1}
+										onInput={event => this.hideEndpoints = (event.currentTarget as HTMLInputElement).value === '0'}
 									></input>
 								</span>}
 								{this.offsetLabel && <span class="feature-container">
