@@ -297,7 +297,7 @@ export class FourierSynth {
 	 * the lowest fundamental 20Hz there can therefore be up to 1000 harmonics. High values
 	 * can crash, hang, or otherwise bring the browser to a halt. USE WITH CAUTION.
 	 */
-	@Prop() maxHarmonics: number = 100;
+	@Prop({mutable: true}) maxHarmonics: number = 100;
 	@Watch('maxHarmonics')
 	maxHarmonicsChange(newValue: number) {
 		this.maxHarmonics = newValue = Math.max(1, Math.min(newValue, 1000));
