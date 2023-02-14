@@ -148,7 +148,7 @@ export class FourierSynth {
 		if (maxHarmonics < this.harmonics) {
 			this.harmonicsChange(maxHarmonics, this.harmonics)
 		}
-		this._update();
+		this._play();
 	}
 
 	/**
@@ -188,28 +188,11 @@ export class FourierSynth {
 			}
 
 			this._drawBackground();
-			this._update();
+			this._drawWaveform();
+			this._play();
 		}
 		else {
-			for (let harmonic = oldValue + 1; harmonic <= newValue; harmonic++) {
-				if (harmonic === 0) {
-					this._data.cos0 = {
-						label: 'Offset',
-						value: 0
-					};
-				}
-				else {
-					this._data[`cos${harmonic}`] = {
-						label: `A<sub>${harmonic}</sub>`,
-						value: 0
-					};
-					this._data[`sin${harmonic}`] = {
-						label: `B<sub>${harmonic}</sub>`,
-						value: 0
-					};
-				}
-			}
-
+			this._addHarmonics(oldValue + 1, newValue);
 			this._drawBackground();
 		}
 	}
@@ -353,12 +336,20 @@ export class FourierSynth {
 	 * Stencil initialization.
 	 */
 	async componentWillLoad() {
-		// initialize data by setting harmonics
-		this.harmonicsChange(this.harmonics, -1);
+		// apply bounds to fundamental
+		this.fundamental = Math.max(this.FREQUENCY_MIN, Math.min(this.fundamental, this.FREQUENCY_MAX));
 
-		this.fundamentalChange(this.fundamental);
+		// initialize harmonics
+		this.harmonics = this._checkHarmonicsBounds(this.harmonics);
 
-		this.periodsChange(this.periods);
+		// initialize data
+		this._addHarmonics(0, this.harmonics);
+
+		// check line width bounds
+		this.lineWidth = Math.max(1, Math.min(this.lineWidth, 5));
+
+		// check periods bounds
+		this.periods = Math.max(1, Math.min(this.periods, 5));
 	}
 
 	/**
@@ -384,11 +375,13 @@ export class FourierSynth {
 		this._waveformRenderer = this._waveformCanvas.getContext('2d');
 		this._backgroundCanvas.style.backgroundColor = this.BLACK;
 
-		// draw graph first time
+		// draw graph first time - avoid auto-adjust
 		this._drawBackground();
+		this._isAutoAdjusting = true;
 		this._drawWaveform();
+		this._isAutoAdjusting = false;
 
-		// trigger repaint after window resize
+		// trigger repaint on window resize
 		window.addEventListener('resize', () => {
 			clearTimeout(this._resizeTimeout);
 			this._resizeTimeout = window.setTimeout(() => {
@@ -396,6 +389,32 @@ export class FourierSynth {
 				this._drawWaveform();
 			}, 100);
 		});
+	}
+
+	/**
+	 * Add/create data for harmonics.
+	 * @param first On initialization this will be 0, otherwise the first new harmonic.
+	 * @param last Total number of harmonics including already existing ones.
+	 */
+	private _addHarmonics(first: number, last: number) {
+		for (let harmonic = first; harmonic <= last; harmonic++) {
+			if (harmonic === 0) {
+				this._data.cos0 = {
+					label: 'Offset',
+					value: 0
+				};
+			}
+			else {
+				this._data[`cos${harmonic}`] = {
+					label: `A<sub>${harmonic}</sub>`,
+					value: 0
+				};
+				this._data[`sin${harmonic}`] = {
+					label: `B<sub>${harmonic}</sub>`,
+					value: 0
+				};
+			}
+		}
 	}
 
 	/**
@@ -576,19 +595,6 @@ export class FourierSynth {
 	}
 
 	/**
-	 * Handle user entering frequency - only trigger update if it is within bounds
-	 * so that the value isn't changed while the user is typing.
-	 * The change event handler will handle update and the property watch will
-	 * correct out of bounds values.
-	 * @param frequency Value of the frequency under edit
-	 */
-	private _onFundamentalInput(frequency: number) {
-		if (this.FREQUENCY_MIN <= frequency && frequency <= this.FREQUENCY_MAX) {
-			this.fundamental = frequency;
-		}
-	}
-
-	/**
 	 * Calculate and apply the ideal gain and DC offset for a waveform so that it does not extend outside the graph area.
 	 * This forces a second iteration to render the waveform, so performance in the browser is reduced by 50%.
 	 * @param peakToPeak - rendered size of waveform
@@ -614,7 +620,6 @@ export class FourierSynth {
 					gain = undefined;
 				}
 			}
-			console.log('gain', gain, this.gain);
 
 			// determine DC offset
 			let offset = this.CONTROL_RANGE * (asymmetry / height);
@@ -644,8 +649,9 @@ export class FourierSynth {
 
 	/**
 	 * Generate audio stream from the data.
+	 * Async because this doesn't need to happen at a precise instant.
 	 */
-	private _play() {
+	private async _play() {
 		if (!this.enableAudio) {
 			return;
 		}
@@ -693,6 +699,7 @@ export class FourierSynth {
 		if (id) {
 			// reset single
 			this._data[id].value = 0;
+			this._update();
 		}
 		else {
 			// reset all
@@ -700,9 +707,9 @@ export class FourierSynth {
 				data.value = 0;
 			});
 			this.gain = this.GAIN_DEFAULT;
+			this._drawWaveform();
+			this._play();
 		}
-
-		this._update();
 	}
 
 	/**
@@ -816,7 +823,6 @@ export class FourierSynth {
 								max={Math.floor(this.FREQUENCY_MAX / this.harmonics)}
 								value={this.fundamental}
 								onChange={event => this.fundamental = Number((event.currentTarget as HTMLInputElement).value)}
-								onInput={event => this._onFundamentalInput(Number((event.currentTarget as HTMLInputElement).value))}
 							></input>
 							<span class="hz">Hz</span>
 						</span>}
