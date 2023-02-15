@@ -42,6 +42,7 @@ export class FourierSynth {
 	private _gainFormatter = Intl.NumberFormat(navigator.language, {minimumFractionDigits: 2, maximumFractionDigits: 2});
 	private _isAutoAdjusting: boolean = false;
 	private _oscillator: OscillatorNode;
+	private _offsetNode: ConstantSourceNode;
 	private _resizeTimeout: number;
 	private _waveformCanvas: HTMLCanvasElement;
 	private _waveformRenderer: CanvasRenderingContext2D;
@@ -56,6 +57,7 @@ export class FourierSynth {
 	enableAudioChange(newValue: boolean) {
 		if (newValue) {
 			this._play()
+			this._audioContext.resume();
 		}
 		else {
 			this._audioContext?.suspend();
@@ -73,6 +75,7 @@ export class FourierSynth {
 			this._gainNode.gain.value = newValue;
 		}
 		this._drawWaveform();
+		this._play();
 	}
 
 	/**
@@ -95,6 +98,7 @@ export class FourierSynth {
 		if (newValue) {
 			this._drawWaveform();
 		}
+		this._play();
 	}
 
 	/**
@@ -665,16 +669,21 @@ export class FourierSynth {
 		if (!this.enableAudio) {
 			return;
 		}
+
 		if (!this._audioContext) {
 			// first time - set up audio
 			this._audioContext = new AudioContext();
 			this._gainNode = this._audioContext.createGain();
-			this._gainNode.gain.value = this.gain;
+			this._offsetNode = this._audioContext.createConstantSource();
+			this._offsetNode.connect(this._audioContext.destination)
+			this._offsetNode.start();
 			this._oscillator = this._audioContext.createOscillator();
 			this._oscillator.connect(this._gainNode).connect(this._audioContext.destination);
 			this._oscillator.start();
 		}
 
+		this._gainNode.gain.value = this.gain;
+		this._offsetNode.offset.value = this._data.cos0.value / this.CONTROL_RANGE;
 		this._oscillator.frequency.value = this.fundamental;
 
 		// generate wave
@@ -696,9 +705,6 @@ export class FourierSynth {
 
 		const wave = this._audioContext.createPeriodicWave(cos, sin, { disableNormalization: true });
 		this._oscillator.setPeriodicWave(wave);
-
-		// play
-		this._audioContext.resume();
 	}
 
 	/**
@@ -716,9 +722,13 @@ export class FourierSynth {
 			Object.values(this._data).forEach(data => {
 				data.value = 0;
 			});
-			this.gain = this.GAIN_DEFAULT;
-			this._drawWaveform();
-			this._play();
+			if (this.gain === this.GAIN_DEFAULT) {
+				this._update();
+			}
+			else {
+				this.gain = this.GAIN_DEFAULT;
+				this._play();
+			}
 		}
 	}
 
