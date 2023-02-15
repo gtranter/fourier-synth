@@ -1,4 +1,4 @@
-import { Component, Host, h, State, Prop, Element, Watch } from '@stencil/core';
+import { Component, Host, Fragment, h, State, Prop, Element, Watch } from '@stencil/core';
 
 export interface FourierData {
 	label: string,
@@ -767,9 +767,9 @@ export class FourierSynth {
 		const control = (id: string) => {
 			const offset = 'cos0' === id;
 			const control = this._data[id];
-			return [
-				<label key={`label-${id}`} class="control-label" innerHTML={control.label}></label>,
-				<input key={`slider-${id}`} class={{'slider': true, 'offset': offset}}
+			return <Fragment>
+				<label class="control-label" innerHTML={control.label}></label>
+				<input class={{'slider': true, 'offset': offset}}
 					disabled={this.autoAdjust && offset}
 					type="range"
 					min={-this.CONTROL_RANGE}
@@ -777,8 +777,8 @@ export class FourierSynth {
 					step={0.1}
 					value={control.value}
 					onInput={event => this._updateData(event.currentTarget as HTMLInputElement, id)}
-				></input>,
-				<input key={`field-${id}`} class="field"
+				></input>
+				<input class="field"
 					readonly={this.autoAdjust && offset}
 					type="number"
 					min={-this.CONTROL_RANGE}
@@ -786,26 +786,26 @@ export class FourierSynth {
 					step={0.1}
 					value={this._fieldFormatter.format(control.value)}
 					onChange={event => this._updateData(event.currentTarget as HTMLInputElement, id)}
-				></input>,
-				<button key={`clear-${id}`} class="clear" disabled={this.autoAdjust && offset} onClick={() => this._resetData(id)}>X</button>
-			];
+				></input>
+				<button class="clear" disabled={this.autoAdjust && offset} onClick={() => this._resetData(id)}>X</button>
+			</Fragment>;
 		};
 
 		const controls = () => {
-			return [
-				this.cosTitle && this.sinTitle && <label class="column-label cos">{this.cosTitle}</label>,
-				this.cosTitle && this.sinTitle && <label class="column-label sin">{this.sinTitle}</label>,
-				Object.keys(this._data).map(id => {
+			return <Fragment>
+				{this.cosTitle && this.sinTitle && <label class="column-label cos">{this.cosTitle}</label>}
+				{this.cosTitle && this.sinTitle && <label class="column-label sin">{this.sinTitle}</label>}
+				{Object.keys(this._data).map(id => {
 					if (id.startsWith('sin')) {
 						const harmonic = Number(id.substring(3));
-						return [
-							control(`cos${harmonic}`),
-							<div key={`frequency-${harmonic}`} class="frequency">{harmonic * this.fundamental}Hz</div>,
-							control(`sin${harmonic}`)
-						];
+						return <Fragment>
+							{control(`cos${harmonic}`)}
+							<div class="frequency">{harmonic * this.fundamental}Hz</div>
+							{control(`sin${harmonic}`)}
+						</Fragment>;
 					}
-				})
-			];
+				})}
+			</Fragment>;
 		}
 
 		return (
