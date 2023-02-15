@@ -83,13 +83,13 @@ export class FourierSynth {
 	/**
 	 * Text for the enable audio control label.
 	 */
-	@Prop({reflect: true}) audioLabel: string = 'Enable audio';
+	@Prop({ reflect: true }) audioLabel: string = 'Enable audio';
 
 	/**
 	 * Automatically adjust the gain and DC offset (cos0) to match the wave.
 	 * This doubles computational effort and therefore impacts performance by ~50%.
 	 */
-	@Prop({mutable: true}) autoAdjust: boolean = false;
+	@Prop({ mutable: true}) autoAdjust: boolean = false;
 	@Watch('autoAdjust')
 	autoAdjustChange(newValue: boolean) {
 		if (newValue) {
@@ -100,7 +100,7 @@ export class FourierSynth {
 	/**
 	 * Text for the auto adjust control label.
 	 */
-	@Prop({reflect: true}) autoAdjustLabel: string = 'Auto-adjust';
+	@Prop({ reflect: true }) autoAdjustLabel: string = 'Auto-adjust';
 
 	/**
 	 * Color of graph background lines and dots. Use a CSS color value.
@@ -121,24 +121,29 @@ export class FourierSynth {
 	}
 
 	/**
+	 * Text for the cosine control prefix.
+	 */
+	@Prop({ reflect: true }) cosPrefix: string = 'A';
+
+	/**
 	 * Title text for the cosine controls.  Set text empty to hide the title.
 	 */
-	@Prop({reflect: true}) cosTitle: string = 'Cos';
+	@Prop({ reflect: true }) cosTitle: string = 'Cos';
 
 	/**
 	 * Text for the dividers display control label. Set the text empty to hide the control.
 	 */
-	@Prop({reflect: true}) dividersLabel: string = 'Dividers';
+	@Prop({ reflect: true }) dividersLabel: string = 'Dividers';
 
 	/**
 	 * Text for the endpoints display control label. Set the text empty to hide the control.
 	 */
-	@Prop({reflect: true}) endpointsLabel: string = 'Endpoints';
+	@Prop({ reflect: true }) endpointsLabel: string = 'Endpoints';
 
 	/**
 	 * The fundamental frequency of the fourier wave.
 	 */
-	@Prop({reflect: true, mutable: true}) fundamental: number = 220;
+	@Prop({ reflect: true, mutable: true}) fundamental: number = 220;
 	@Watch('fundamental')
 	fundamentalChange(newValue: number) {
 		// apply bounds
@@ -154,27 +159,27 @@ export class FourierSynth {
 	/**
 	 * Text for the fundamental control label. Set the text empty to hide the control.
 	 */
-	@Prop({reflect: true}) fundamentalLabel: string = 'Fundamental';
+	@Prop({ reflect: true }) fundamentalLabel: string = 'Fundamental';
 
 	/**
 	 * Text for the gain control label.
 	 */
-	@Prop({reflect: true}) gainLabel: string = 'Gain';
+	@Prop({ reflect: true }) gainLabel: string = 'Gain';
 
 	/**
 	 * Text for the graph display control label.
 	 */
-	@Prop({reflect: true}) graphLabel: string = 'Show graph';
+	@Prop({ reflect: true }) graphLabel: string = 'Show graph';
 
 	/**
 	 * Text for the grid dots display control label. Set the text empty to hide the control.
 	 */
-	@Prop({reflect: true}) gridDotsLabel: string = 'Grid dots';
+	@Prop({ reflect: true }) gridDotsLabel: string = 'Grid dots';
 
 	/**
 	 * Number of harmonics to control and produce.
 	 */
-	@Prop({reflect: true, mutable: true}) harmonics: number = 8;
+	@Prop({ reflect: true, mutable: true}) harmonics: number = 8;
 	@Watch('harmonics')
 	harmonicsChange(newValue: number, oldValue: number) {
 		// apply bounds based on frequency
@@ -200,12 +205,12 @@ export class FourierSynth {
 	/**
 	 * Text for the harmonics control label. Set the text empty to hide the control.
 	 */
-	@Prop({reflect: true}) harmonicsLabel: string = 'Harmonics';
+	@Prop({ reflect: true }) harmonicsLabel: string = 'Harmonics';
 
 	/**
 	 * Don't display the fundamental wave divider lines.
 	 */
-	@Prop({mutable: true}) hideDividers: boolean = false;
+	@Prop({ mutable: true}) hideDividers: boolean = false;
 	@Watch('hideDividers')
 	hideDividersChange() {
 		this._drawBackground();
@@ -214,7 +219,7 @@ export class FourierSynth {
 	/**
 	 * Don't display the fundamental wave endpoint dots.
 	 */
-	@Prop({mutable: true}) hideEndpoints: boolean = false;
+	@Prop({ mutable: true}) hideEndpoints: boolean = false;
 	@Watch('hideEndpoints')
 	hideEndpointsChange() {
 		this._drawWaveform();
@@ -223,7 +228,7 @@ export class FourierSynth {
 	/**
 	 * Don't display the graph.
 	 */
-	@Prop({mutable: true}) hideGraph: boolean = false;
+	@Prop({ mutable: true}) hideGraph: boolean = false;
 	@Watch('hideGraph')
 	hideGraphChange() {
 		this._drawBackground();
@@ -233,7 +238,7 @@ export class FourierSynth {
 	/**
 	 * Don't display the graph background dots.
 	 */
-	@Prop({mutable: true}) hideGridDots: boolean = false;
+	@Prop({ mutable: true}) hideGridDots: boolean = false;
 	@Watch('hideGridDots')
 	hideGridDotsChange() {
 		this._drawBackground();
@@ -242,7 +247,7 @@ export class FourierSynth {
 	/**
 	 * Don't display the graph DC offset line.
 	 */
-	@Prop({mutable: true}) hideOffset: boolean = false;
+	@Prop({ mutable: true}) hideOffset: boolean = false;
 	@Watch('hideOffset')
 	hideOffsetChange() {
 		this._drawWaveform();
@@ -260,7 +265,7 @@ export class FourierSynth {
 	/**
 	 * The width of the waveform plot line.
 	 */
-	@Prop({mutable: true}) lineWidth: number = 3;
+	@Prop({ mutable: true}) lineWidth: number = 3;
 	@Watch('lineWidth')
 	lineWidthChange(newValue: number) {
 		this.lineWidth = newValue = Math.max(1, Math.min(newValue, 5));
@@ -270,12 +275,12 @@ export class FourierSynth {
 	/**
 	 * Text for the line width control label. Set the text empty to hide the control.
 	 */
-	@Prop({reflect: true}) lineWidthLabel: string = 'Line width';
+	@Prop({ reflect: true }) lineWidthLabel: string = 'Line width';
 
 	/**
 	 * Text for the main title. Set the text empty to hide the title.
 	 */
-	@Prop({reflect: true}) mainTitle: string = 'Fourier Synthesizer';
+	@Prop({ reflect: true }) mainTitle: string = 'Fourier Synthesizer';
 
 	/**
 	 * Limit of the number of harmonics. The actual highest possible number of harmonics
@@ -283,7 +288,7 @@ export class FourierSynth {
 	 * the lowest fundamental 20Hz there can therefore be up to 1000 harmonics. High values
 	 * can crash, hang, or otherwise bring the browser to a halt. USE WITH CAUTION.
 	 */
-	@Prop({mutable: true}) maxHarmonics: number = 100;
+	@Prop({ mutable: true}) maxHarmonics: number = 100;
 	@Watch('maxHarmonics')
 	maxHarmonicsChange(newValue: number) {
 		this.maxHarmonics = newValue = Math.max(1, Math.min(newValue, 1000));
@@ -304,12 +309,12 @@ export class FourierSynth {
 	/**
 	 * Text for the offset display control label. Set the text empty to hide the control.
 	 */
-	@Prop({reflect: true}) offsetLabel: string = 'Offset';
+	@Prop({ reflect: true }) offsetLabel: string = 'Offset';
 
 	/**
 	 * Number of fundamental wave periods to display in the graph. From 1 to 5.
 	 */
-	@Prop({mutable: true}) periods: number = 3;
+	@Prop({ mutable: true}) periods: number = 3;
 	@Watch('periods')
 	periodsChange(newValue: number) {
 		this.periods = newValue = Math.max(1, Math.min(newValue, 5));
@@ -320,17 +325,22 @@ export class FourierSynth {
 	/**
 	 * Text for the periods control label. Set the text empty to hide the control.
 	 */
-	@Prop({reflect: true}) periodsLabel: string = 'Periods';
+	@Prop({ reflect: true }) periodsLabel: string = 'Periods';
 
 	/**
 	 * Text for the reset button.
 	 */
-	@Prop({reflect: true}) resetText: string = 'Reset';
+	@Prop({ reflect: true }) resetText: string = 'Reset';
+
+	/**
+	 * Text for the sine control prefix.
+	 */
+	@Prop({ reflect: true }) sinPrefix: string = 'B';
 
 	/**
 	 * Title text for the sine controls. Set text empty to hide the title.
 	 */
-	@Prop({reflect: true}) sinTitle: string = 'Sin';
+	@Prop({ reflect: true }) sinTitle: string = 'Sin';
 
 	/**
 	 * Stencil initialization.
@@ -406,11 +416,11 @@ export class FourierSynth {
 			}
 			else {
 				this._data[`cos${harmonic}`] = {
-					label: `A<sub>${harmonic}</sub>`,
+					label: `${this.cosPrefix}<sub>${harmonic}</sub>`,
 					value: 0
 				};
 				this._data[`sin${harmonic}`] = {
-					label: `B<sub>${harmonic}</sub>`,
+					label: `${this.sinPrefix}<sub>${harmonic}</sub>`,
 					value: 0
 				};
 			}

@@ -33,37 +33,39 @@ Control over most features is provided through properties that are set through t
 
 ```html
 <fourier-synth
-	audio-label="Enable audio"
-	auto-adjust
-	auto-adjustLabel="Auto-adjust"
-	axes-color="rgb(0, 127, 255)"
-	background-color="rgb(0, 0, 0)"
-	cos-title="Cos"
-	dividers-label="Dividers"
-	endpoints-label="Endpoints"
-	fundamental="220"
-	fundamental-label="Fundamental"
-	gain-label="Gain"
-	graph-label="Show graph"
-	grid-dots-label="Grid dots"
-	harmonics="8"
-	harmonics-label="Harmonics"
-	hide-dividers
-	hide-endpoints
-	hide-graph
-	hide-grid-dots
-	hide-offset
-	line-color="rgb(255, 0, 0)"
-	line-width="3"
-	line-width-label="Line width"
-	main-title="Fourier Synthesis"
-	max-harmonics="100"
-	offset-color="rgb(0, 255, 0)"
-	offset-label="Offset"
-	periods="3"
-	periods-label="Periods"
-	reset-text="Reset"
-	sin-title="Sin"
+    audio-label="Enable audio"
+    auto-adjust
+    auto-adjustLabel="Auto-adjust"
+    axes-color="rgb(0, 127, 255)"
+    background-color="rgb(0, 0, 0)"
+    cos-prefix="A"
+    cos-title="Cos"
+    dividers-label="Dividers"
+    endpoints-label="Endpoints"
+    fundamental="220"
+    fundamental-label="Fundamental"
+    gain-label="Gain"
+    graph-label="Show graph"
+    grid-dots-label="Grid dots"
+    harmonics="8"
+    harmonics-label="Harmonics"
+    hide-dividers
+    hide-endpoints
+    hide-graph
+    hide-grid-dots
+    hide-offset
+    line-color="rgb(255, 0, 0)"
+    line-width="3"
+    line-width-label="Line width"
+    main-title="Fourier Synthesis"
+    max-harmonics="100"
+    offset-color="rgb(0, 255, 0)"
+    offset-label="Offset"
+    periods="3"
+    periods-label="Periods"
+    reset-text="Reset"
+    sin-prefix="B"
+    sin-title="Sin"
 >Please enable JavaScript to use Fourier Synthesizer</fourier-synth>
 ```
 
@@ -78,6 +80,7 @@ Control over most features is provided through properties that are set through t
 | `autoAdjustLabel`  | `auto-adjust-label` | Text for the auto adjust control label.                                                                                                                                                                                                                                                                                               | `string`  | `'Auto-adjust'`         |
 | `axesColor`        | `axes-color`        | Color of graph background lines and dots. Use a CSS color value.                                                                                                                                                                                                                                                                      | `string`  | `this.BLUE`             |
 | `backgroundColor`  | `background-color`  | Background color of graph. Use a CSS color value.                                                                                                                                                                                                                                                                                     | `string`  | `this.BLACK`            |
+| `cosPrefix`        | `cos-prefix`        | Text for the cosine control prefix.                                                                                                                                                                                                                                                                                                   | `string`  | `'A'`                   |
 | `cosTitle`         | `cos-title`         | Title text for the cosine controls.  Set text empty to hide the title.                                                                                                                                                                                                                                                                | `string`  | `'Cos'`                 |
 | `dividersLabel`    | `dividers-label`    | Text for the dividers display control label. Set the text empty to hide the control.                                                                                                                                                                                                                                                  | `string`  | `'Dividers'`            |
 | `endpointsLabel`   | `endpoints-label`   | Text for the endpoints display control label. Set the text empty to hide the control.                                                                                                                                                                                                                                                 | `string`  | `'Endpoints'`           |
@@ -103,6 +106,7 @@ Control over most features is provided through properties that are set through t
 | `periods`          | `periods`           | Number of fundamental wave periods to display in the graph. From 1 to 5.                                                                                                                                                                                                                                                              | `number`  | `3`                     |
 | `periodsLabel`     | `periods-label`     | Text for the periods control label. Set the text empty to hide the control.                                                                                                                                                                                                                                                           | `string`  | `'Periods'`             |
 | `resetText`        | `reset-text`        | Text for the reset button.                                                                                                                                                                                                                                                                                                            | `string`  | `'Reset'`               |
+| `sinPrefix`        | `sin-prefix`        | Text for the sine control prefix.                                                                                                                                                                                                                                                                                                     | `string`  | `'B'`                   |
 | `sinTitle`         | `sin-title`         | Title text for the sine controls. Set text empty to hide the title.                                                                                                                                                                                                                                                                   | `string`  | `'Sin'`                 |
 
 
