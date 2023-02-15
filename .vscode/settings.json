@@ -1,0 +1,15 @@
+{
+	"editor.autoIndent": "full",
+	"editor.detectIndentation": true,
+	"editor.formatOnPaste": true,
+	"editor.formatOnType": true,
+	"editor.insertSpaces": false,
+	"editor.tabCompletion": "on",
+	"editor.tabSize": 3,
+	"editor.trimAutoWhitespace": true,
+	"editor.useTabStops": true,
+	"editor.wrappingIndent": "indent",
+	"files.insertFinalNewline": true,
+	"files.trimFinalNewlines": true,
+	"files.trimTrailingWhitespace": true
+}

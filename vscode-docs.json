@@ -1,0 +1,138 @@
+{
+  "version": 1.1,
+  "tags": [
+    {
+      "name": "fourier-synth",
+      "description": {
+        "kind": "markdown",
+        "value": "The Fourier Synthesizer web component is an interactive waveform and sound generator based on Fourier synthesis.\r\n\r\n## Layout\r\nThe size of the synthesizer will by default be as large as possible within the web page. You can use CSS width and height properties and/or page layout to control the size if necessary.\r\n```html\r\n<fourier-synth style=\"width: 800px;\"></fourier-synth>\r\n```"
+      },
+      "attributes": [
+        {
+          "name": "audio-label",
+          "description": "Text for the enable audio control label."
+        },
+        {
+          "name": "auto-adjust",
+          "description": "Automatically adjust the gain and DC offset (cos0) to match the wave.\r\nThis doubles computational effort and therefore impacts performance by ~50%."
+        },
+        {
+          "name": "auto-adjust-label",
+          "description": "Text for the auto adjust control label."
+        },
+        {
+          "name": "axes-color",
+          "description": "Color of graph background lines and dots. Use a CSS color value."
+        },
+        {
+          "name": "background-color",
+          "description": "Background color of graph. Use a CSS color value."
+        },
+        {
+          "name": "cos-title",
+          "description": "Title text for the cosine controls.  Set text empty to hide the title."
+        },
+        {
+          "name": "dividers-label",
+          "description": "Text for the dividers display control label. Set the text empty to hide the control."
+        },
+        {
+          "name": "endpoints-label",
+          "description": "Text for the endpoints display control label. Set the text empty to hide the control."
+        },
+        {
+          "name": "fundamental",
+          "description": "The fundamental frequency of the fourier wave."
+        },
+        {
+          "name": "fundamental-label",
+          "description": "Text for the fundamental control label. Set the text empty to hide the control."
+        },
+        {
+          "name": "gain-label",
+          "description": "Text for the gain control label."
+        },
+        {
+          "name": "graph-label",
+          "description": "Text for the graph display control label."
+        },
+        {
+          "name": "grid-dots-label",
+          "description": "Text for the grid dots display control label. Set the text empty to hide the control."
+        },
+        {
+          "name": "harmonics",
+          "description": "Number of harmonics to control and produce."
+        },
+        {
+          "name": "harmonics-label",
+          "description": "Text for the harmonics control label. Set the text empty to hide the control."
+        },
+        {
+          "name": "hide-dividers",
+          "description": "Don't display the fundamental wave divider lines."
+        },
+        {
+          "name": "hide-endpoints",
+          "description": "Don't display the fundamental wave endpoint dots."
+        },
+        {
+          "name": "hide-graph",
+          "description": "Don't display the graph."
+        },
+        {
+          "name": "hide-grid-dots",
+          "description": "Don't display the graph background dots."
+        },
+        {
+          "name": "hide-offset",
+          "description": "Don't display the graph DC offset line."
+        },
+        {
+          "name": "line-color",
+          "description": "Color of the waveform plot line. Use a CSS color value."
+        },
+        {
+          "name": "line-width",
+          "description": "The width of the waveform plot line."
+        },
+        {
+          "name": "line-width-label",
+          "description": "Text for the line width control label. Set the text empty to hide the control."
+        },
+        {
+          "name": "main-title",
+          "description": "Text for the main title. Set the text empty to hide the title."
+        },
+        {
+          "name": "max-harmonics",
+          "description": "Limit of the number of harmonics. The actual highest possible number of harmonics\r\nis based on the frequency. The highest possible harmonic frequency is 20000Hz. At\r\nthe lowest fundamental 20Hz there can therefore be up to 1000 harmonics. High values\r\ncan crash, hang, or otherwise bring the browser to a halt. USE WITH CAUTION."
+        },
+        {
+          "name": "offset-color",
+          "description": "Color of the graph DC offset line and waveform endpoint dots. Use a CSS color value."
+        },
+        {
+          "name": "offset-label",
+          "description": "Text for the offset display control label. Set the text empty to hide the control."
+        },
+        {
+          "name": "periods",
+          "description": "Number of fundamental wave periods to display in the graph. From 1 to 5."
+        },
+        {
+          "name": "periods-label",
+          "description": "Text for the periods control label. Set the text empty to hide the control."
+        },
+        {
+          "name": "reset-text",
+          "description": "Text for the reset button."
+        },
+        {
+          "name": "sin-title",
+          "description": "Title text for the sine controls. Set text empty to hide the title."
+        }
+      ]
+    }
+  ]
+}

@@ -12,14 +12,15 @@ export const config: Config = {
 			esmLoaderPath: '../loader',
 		},
 		{
-			type: 'dist-custom-elements',
+			type: 'docs-readme',
 		},
 		{
-			type: 'docs-readme',
+			type: 'docs-vscode',
+			file: 'vscode-docs.json',
 		},
 		{
 			type: 'www',
 			serviceWorker: null, // disable service workers
-		},
+		}
 	],
 };
