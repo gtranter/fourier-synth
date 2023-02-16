@@ -1,0 +1,112 @@
+{
+  "env": {
+    "browser": true,
+    "es2021": true
+  },
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended"
+  ],
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": 12,
+    "sourceType": "module"
+  },
+  "plugins": [
+    "@typescript-eslint",
+    "html"
+  ],
+  "rules": {
+    "@typescript-eslint/explicit-module-boundary-types": ["off"],
+    "indent": [
+      "error",
+      4,
+      {
+        "SwitchCase": 1
+      }
+    ],
+    "linebreak-style": [
+      "warn",
+      "windows"
+    ],
+    "no-case-declarations": "off",
+    "@typescript-eslint/no-explicit-any": "off",
+    "@typescript-eslint/no-inferrable-types": ["off"],
+    "one-var": [
+      "error",
+      {
+        "initialized": "never",
+        "uninitialized": "never"
+      }
+    ],
+    "quotes": [
+      "error",
+      "single",
+      {
+        "avoidEscape": true,
+        "allowTemplateLiterals": true
+      }
+    ],
+    "semi": [
+      "error",
+      "always"
+    ]
+  },
+  "ignorePatterns": [
+    "/src/assets/*"
+  ],
+  "overrides": [
+    {
+      // All code
+      "files": ["*.html", "*.js", "*.ts", "*.tsx"],
+      "rules": {
+        "@typescript-eslint/no-unused-vars": [
+          "error",
+          {
+            "argsIgnorePattern": "^_"
+          }
+        ]
+      }
+    },
+    {
+      // TSX files
+      "files": ["*.tsx"],
+      "rules": {
+        "no-unused-vars": "off", // note you must disable the base rule as it can report incorrect errors
+        "@typescript-eslint/no-unused-vars": ["off"] // let TS config handle this
+      }
+    },
+    {
+      // Plain JS files
+      "files": ["*.js"],
+      "rules": {
+        "no-undef": "off",
+        "@typescript-eslint/no-var-requires": "off"
+      }
+    },
+    {
+      // HTML files
+      "files": ["*.html"],
+      "rules": {
+        "quotes": "off",
+        "@typescript-eslint/quotes": [
+          "error",
+          "single",
+          {
+            "avoidEscape": true,
+            "allowTemplateLiterals": true
+          }
+        ]
+      }
+    },
+    {
+      // Markdown files
+      "files": [
+        "*.md"
+      ],
+      "rules": {
+        "@typescript-eslint/markdownlint/md041": "off"
+      }
+    }
+  ]
+}
