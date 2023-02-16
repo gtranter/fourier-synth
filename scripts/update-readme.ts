@@ -21,6 +21,24 @@ export default function main() {
 			}
 		});
 	});
+
+	const demo = path.resolve('./demo.html').normalize();
+	fs.readFile(demo, 'utf8', (error, fileString) => {
+		if (error) {
+			return console.error(`Unable to read file '${demo}' - ${error.message}.`);
+		}
+
+		const updated = fileString.replace(/fourier-synth@\d+\.\d+\.\d+(\-[0-9a-zA-Z-]+\.\d+)?/g, `fourier-synth@${version}`);
+
+		fs.writeFile(demo, updated, 'utf8', (error) => {
+			if (error) {
+				return console.error(`Unable to write file '${demo}' - ${error.message}.`);
+			}
+			else {
+				console.log(`Updated version in '${demo}'.`);
+			}
+		});
+	});
 }
 
 main();
