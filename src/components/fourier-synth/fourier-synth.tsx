@@ -589,6 +589,12 @@ export class FourierSynth {
 			// adjust by scale & gain, and offset
 			y = yCenter + (scaleY * y);
 
+			// keep plot line inside graph
+			const stroke = this.lineWidth / 2;
+
+			// "clip" wave at max levels
+			y = Math.max(stroke, Math.min(y, height - stroke));
+
 			if (x === 0) {
 				originY = y;
 				this._waveformRenderer.moveTo(x, y);
