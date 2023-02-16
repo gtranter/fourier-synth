@@ -5,11 +5,6 @@ This project is a standalone Web Component for generating waveforms and audio us
 <img alt="fourier-synth" src="src/components/fourier-synth/fourier-synth.png" width="400" />
 <br></br>
 
-# Demo
-
-[Link to demo page](./demo.html)
-<br></br>
-
 # Develop
 
 For information about development using this project see [DEVELOP.md](./DEVELOP.md).
