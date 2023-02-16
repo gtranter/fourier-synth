@@ -682,12 +682,13 @@ export class FourierSynth {
 		if (!this._audioContext) {
 			// first time - set up audio
 			this._audioContext = new AudioContext();
-			this._gainNode = this._audioContext.createGain();
-			this._offsetNode = this._audioContext.createConstantSource();
-			this._offsetNode.connect(this._audioContext.destination)
+			this._gainNode = new GainNode(this._audioContext);
+			this._gainNode.connect(this._audioContext.destination);
+			this._offsetNode = new ConstantSourceNode(this._audioContext);
+			this._offsetNode.connect(this._audioContext.destination);
 			this._offsetNode.start();
-			this._oscillator = this._audioContext.createOscillator();
-			this._oscillator.connect(this._gainNode).connect(this._audioContext.destination);
+			this._oscillator = new OscillatorNode(this._audioContext);
+			this._oscillator.connect(this._gainNode);
 			this._oscillator.start();
 		}
 
