@@ -135,6 +135,15 @@ export class FourierSynth {
 	@Prop({ reflect: true }) cosTitle: string = 'Cos';
 
 	/**
+	 * Text for the DC (cos0) control label. HTML can be used e.g. `A<sub>0</sub>`.
+	 */
+	@Prop({ reflect: true }) dcLabel: string = 'DC';
+	@Watch('dcLabel')
+	dcLabelChange(newValue: string) {
+		this._data.cos0.label = newValue;
+	}
+
+	/**
 	 * Text for the dividers display control label. Set the text empty to hide the control.
 	 */
 	@Prop({ reflect: true }) dividersLabel: string = 'Dividers';
@@ -414,7 +423,7 @@ export class FourierSynth {
 		for (let harmonic = first; harmonic <= last; harmonic++) {
 			if (harmonic === 0) {
 				this._data.cos0 = {
-					label: 'Offset',
+					label: this.dcLabel,
 					value: 0
 				};
 			}

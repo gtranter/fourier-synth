@@ -29,7 +29,7 @@ Only a `<fourier-synth>` element is required to use the component. Because JavaS
 
 ### 2. Advanced
 
-Control over most features is provided through properties that are set through the attributes of the `<fourier-synth>` element.
+Control over all features is provided through properties that are set through the attributes of the `<fourier-synth>` element.
 
 ```html
 <fourier-synth
@@ -40,6 +40,7 @@ Control over most features is provided through properties that are set through t
     background-color="rgb(0, 0, 0)"
     cos-prefix="A"
     cos-title="Cos"
+    dc-label="DC"
     dividers-label="Dividers"
     endpoints-label="Endpoints"
     fundamental="220"
@@ -82,6 +83,7 @@ Control over most features is provided through properties that are set through t
 | `backgroundColor`  | `background-color`  | Background color of graph. Use a CSS color value.                                                                                                                                                                                                                                                                                     | `string`  | `this.BLACK`            |
 | `cosPrefix`        | `cos-prefix`        | Text for the cosine control prefix.                                                                                                                                                                                                                                                                                                   | `string`  | `'A'`                   |
 | `cosTitle`         | `cos-title`         | Title text for the cosine controls.  Set text empty to hide the title.                                                                                                                                                                                                                                                                | `string`  | `'Cos'`                 |
+| `dcLabel`          | `dc-label`          | Text for the DC (cos0) control label. HTML can be used e.g. `A<sub>0</sub>`.                                                                                                                                                                                                                                                          | `string`  | `'DC'`                  |
 | `dividersLabel`    | `dividers-label`    | Text for the dividers display control label. Set the text empty to hide the control.                                                                                                                                                                                                                                                  | `string`  | `'Dividers'`            |
 | `endpointsLabel`   | `endpoints-label`   | Text for the endpoints display control label. Set the text empty to hide the control.                                                                                                                                                                                                                                                 | `string`  | `'Endpoints'`           |
 | `fundamental`      | `fundamental`       | The fundamental frequency of the fourier wave.                                                                                                                                                                                                                                                                                        | `number`  | `220`                   |
