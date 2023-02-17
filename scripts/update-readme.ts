@@ -22,7 +22,7 @@ export default function main() {
 		});
 	});
 
-	const demo = path.resolve('./demo.html').normalize();
+	const demo = path.resolve('./fourier-synth.html').normalize();
 	fs.readFile(demo, 'utf8', (error, fileString) => {
 		if (error) {
 			return console.error(`Unable to read file '${demo}' - ${error.message}.`);
