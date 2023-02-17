@@ -1,4 +1,5 @@
 import { Component, Host, Fragment, h, State, Prop, Element, Watch } from '@stencil/core';
+import { name as PackageName, version as PackageVersion } from '../../../package.json';
 
 export interface FourierData {
 	label: string,
@@ -37,10 +38,12 @@ export class FourierSynth {
 	private _backgroundCanvas: HTMLCanvasElement;
 	private _backgroundRenderer: CanvasRenderingContext2D;
 	private _data: Record<string, FourierData> = {};
-	private _fieldFormatter = Intl.NumberFormat(navigator.language, {minimumFractionDigits: 1, maximumFractionDigits: 1});
+	private _fieldFormatter = Intl.NumberFormat(navigator.language, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+	private _fileElement: HTMLInputElement;
 	private _gainNode: GainNode;
 	private _gainFormatter = Intl.NumberFormat(navigator.language, {minimumFractionDigits: 2, maximumFractionDigits: 2});
 	private _isAutoAdjusting: boolean = false;
+	private _lastFilename: string;
 	private _oscillator: OscillatorNode;
 	private _offsetNode: ConstantSourceNode;
 	private _resizeTimeout: number;
@@ -624,6 +627,99 @@ export class FourierSynth {
 	}
 
 	/**
+	 * Convert the fourier data and user options to JSON.
+	 * @returns JOSN formatted string
+	 */
+	private _exportJson(): string {
+		const data: FourierSynthJson = {
+			source: PackageName,
+			version: PackageVersion,
+			config: {
+				autoAdjust: this.autoAdjust,
+				fundamental: this.fundamental,
+				gain: this.gain,
+				harmonics: this.harmonics,
+				hideDividers: this.hideDividers,
+				hideEndpoints: this.hideEndpoints,
+				hideGraph: this.hideGraph,
+				hideGridDots: this.hideGridDots,
+				hideOffset: this.hideOffset,
+				lineWidth: this.lineWidth,
+				periods: this.periods
+			},
+			fourierData: {}
+		};
+
+		Object.entries(this._data).forEach(entry => {
+			data.fourierData[entry[0]] = entry[1].value / this.CONTROL_RANGE;
+		});
+
+		return JSON.stringify(data, null, 4);
+	}
+
+	/**
+	 * Load the fourier data and user options from a JSON string.
+	 * @param json
+	 */
+	private _importJson(json: string) {
+		const data = JSON.parse(json);
+
+		// don't do anything if this is not a fourier-synth data file with data
+		if (data.source === PackageName && data.fourierData && Object.keys(data.fourierData).length > 0) {
+			// data
+			Object.entries(data.fourierData).forEach(entry => {
+				const key = entry[0];
+				if (key.match(/^(cos|sin)\d+$/)) {
+					const suffix = `<sub>${key.substring(3)}</sub>`;
+					const value = (entry[1] as number) * this.CONTROL_RANGE;
+					if (key === 'cos0') {
+						this._data.cos0.value = value;
+					}
+					else {
+						// new object in case new harmonics are more than existing
+						this._data[key] = {
+							label: `${key.startsWith('cos') ? this.cosPrefix : this.sinPrefix}${suffix}`,
+							value: value
+						}
+					}
+				}
+			});
+
+			this._drawWaveform();
+			this._play();
+			this.updateCount++;
+
+			// config
+			if (data.config && Object.keys(data.config).length > 0) {
+				this.autoAdjust = data.config.autoAdjust ?? this.autoAdjust;
+				this.fundamental = data.config.fundamental ?? this.fundamental;
+				this.gain = data.config.gain ?? this.gain;
+				this.harmonics = data.config.harmonics ?? this.harmonics;
+				this.hideDividers = data.config.hideDividers ?? this.hideDividers;
+				this.hideEndpoints = data.config.hideEndpoints ?? this.hideEndpoints;
+				this.hideGraph = data.config.hideGraph ?? this.hideGraph;
+				this.hideGridDots = data.config.hideGridDots ?? this.hideGridDots;
+				this.hideOffset = data.config.hideOffset ?? this.hideOffset;
+				this.lineWidth = data.config.lineWidth ?? this.lineWidth;
+				this.periods = data.config.periods ?? this.periods;
+			}
+		}
+	}
+
+	/**
+	 * Get the contents of the file that the user has opened.
+	 */
+	private _loadFile() {
+		if (this._fileElement.files.length > 0) {
+			const file = this._fileElement.files[0];
+			this._lastFilename = file.name;
+			file.text().then(json => this._importJson(json))
+				// clear the value so that opening the same file again will work (Edge)
+				.then(() => this._fileElement.value = '');
+		}
+	}
+
+	/**
 	 * Calculate and apply the ideal gain and DC offset for a waveform so that it does not extend outside the graph area.
 	 * This forces a second iteration to render the waveform, so performance in the browser is reduced by 50%.
 	 * @param peakToPeak - rendered size of waveform
@@ -746,6 +842,24 @@ export class FourierSynth {
 				this._play();
 			}
 		}
+	}
+
+	/**
+	 * Open the file save dialog to let the user save the synth data and config.
+	 */
+	private _saveFile() {
+		const data = this._exportJson();
+		const file = new Blob([data], { type: 'application/json' });
+		const a = document.createElement('a');
+		const	url = URL.createObjectURL(file);
+		a.href = url;
+		a.download = this._lastFilename ?? `${PackageName}.json`;
+		document.body.appendChild(a);
+		a.click();
+		window.setTimeout(function () {
+			document.body.removeChild(a);
+			window.URL.revokeObjectURL(url);
+		}, 0);
 	}
 
 	/**
@@ -872,6 +986,28 @@ export class FourierSynth {
 								onChange={event => this.harmonics = this._checkHarmonicsBounds(Number((event.currentTarget as HTMLInputElement).value))}
 							></input>
 						</span>}
+						<span class="feature-container spacer"></span>
+						<span class="feature-container icons">
+							<span class="button" onClick={() => this._fileElement.click()}>
+								<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" class="bi bi-file-earmark-arrow-up" viewBox="0 0 16 16">
+									<path d="M8.5 11.5a.5.5 0 0 1-1 0V7.707L6.354 8.854a.5.5 0 1 1-.708-.708l2-2a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 7.707V11.5z" />
+									<path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5v2z" />
+								</svg>
+							</span>
+							<span class="button" onClick={() => this._saveFile()}>
+								<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" class="bi bi-file-earmark-arrow-down" viewBox="0 0 16 16">
+									<path d="M8.5 6.5a.5.5 0 0 0-1 0v3.793L6.354 9.146a.5.5 0 1 0-.708.708l2 2a.5.5 0 0 0 .708 0l2-2a.5.5 0 0 0-.708-.708L8.5 10.293V6.5z" />
+									<path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5v2z" />
+								</svg>
+							</span>
+							<input id="file"
+								hidden
+								type="file"
+								accept=".json"
+								onChange={() => this._loadFile()}
+								ref={el => this._fileElement = el}
+							></input>
+						</span>
 					</div>
 					{/* controls */}
 					<div class="controls">
@@ -1011,4 +1147,23 @@ export class FourierSynth {
 			</Host>
 		);
 	}
+}
+
+export type FourierSynthJson = {
+	config: {
+		autoAdjust: boolean,
+		fundamental: number,
+		gain: number,
+		harmonics: number,
+		hideDividers: boolean,
+		hideEndpoints: boolean,
+		hideGraph: boolean,
+		hideGridDots: boolean,
+		hideOffset: boolean,
+		lineWidth: number,
+		periods: number
+	},
+	fourierData: Record<string, number>,
+	source: string,
+	version: string
 }
