@@ -76,23 +76,23 @@
 	}
 
 	.fundamental {
-		width: 64px;
-		padding-right: 24px;
+		width: 5em;
 	}
 
 	.harmonics {
-		width: 48px;
+		width: 4em;
 	}
 
 	.hz{
-		margin: 0 8px 0 -24px;
+		width: 1.2em;
 	}
 
 	.number {
-		width: 40px;
+		width: 2.5em;
 	}
 
 	.toggle {
+		cursor: pointer;
 		width: 32px;
 	}
 
@@ -140,6 +140,7 @@
 	.offset,
 	.gain,
 	.reset {
+		cursor: pointer;
 		margin-top: 8px;
 	}
 
@@ -159,6 +160,7 @@
 	}
 
 	.slider {
+		cursor: pointer;
 		flex-grow: 1;
 		flex-shrink: 1;
 		margin: 0 8px;
@@ -169,7 +171,7 @@
 	}
 
 	.field {
-		width: 40px;
+		width: 3em;
 		text-align: right;
 		appearance: textfield;
 
@@ -183,6 +185,7 @@
 	}
 
 	.clear {
+		cursor: pointer;
 		min-width: 20px;
 		max-width: 20px;
 		padding-left: 0;
@@ -199,7 +202,11 @@
 	}
 
 	.gain .field {
-		width: 56px;
+		width: 4em;
+	}
+
+	[disabled] {
+		cursor: default;
 	}
 
 	.graph {
