@@ -38,7 +38,7 @@ export class FourierSynth {
 	private _backgroundCanvas: HTMLCanvasElement;
 	private _backgroundRenderer: CanvasRenderingContext2D;
 	private _data: Record<string, FourierData> = {};
-	private _fieldFormatter = Intl.NumberFormat(navigator.language, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+	private _fieldFormatter = Intl.NumberFormat(navigator.language, {minimumFractionDigits: 1, maximumFractionDigits: 1});
 	private _fileElement: HTMLInputElement;
 	private _gainNode: GainNode;
 	private _gainFormatter = Intl.NumberFormat(navigator.language, {minimumFractionDigits: 2, maximumFractionDigits: 2});
@@ -707,6 +707,18 @@ export class FourierSynth {
 	}
 
 	/**
+	 * Check if the key pressed is Enter or space, and trap the event if true.
+	 */
+	private _isToggleKey(event: KeyboardEvent): boolean {
+		if (event.key.match(/(^Enter| )$/)) {
+			event.preventDefault();
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
 	 * Get the contents of the file that the user has opened.
 	 */
 	private _loadFile() {
@@ -963,6 +975,7 @@ export class FourierSynth {
 								step={1}
 								value={this.enableAudio ? 1 : 0}
 								onInput={event => this.enableAudio = (event.currentTarget as HTMLInputElement).value === '1'}
+								onKeyPress={(event) => this._isToggleKey(event) && (this.enableAudio = !this.enableAudio)}
 							></input>
 						</span>
 						{this.fundamentalLabel && <span class="feature-container">
@@ -974,7 +987,7 @@ export class FourierSynth {
 								value={this.fundamental}
 								onChange={event => this.fundamental = Number((event.currentTarget as HTMLInputElement).value)}
 							></input>
-							<span class="hz">Hz</span>
+							<input class="hz" type="text" value="Hz" readonly tabIndex={-1}></input>
 						</span>}
 						{this.harmonicsLabel && <span class="feature-container">
 							<label class="feature-label">{this.harmonicsLabel}</label>
@@ -1031,6 +1044,7 @@ export class FourierSynth {
 							<input class="field"
 								readonly
 								value={`${this._gainFormatter.format(20 * Math.log10(this.gain))}dB`}
+								tabindex={-1}
 							></input>
 							<button class="clear" disabled={this.autoAdjust} onClick={() => this.gain = this.GAIN_DEFAULT}>X</button>
 						</div>
@@ -1048,6 +1062,7 @@ export class FourierSynth {
 									step={1}
 									value={this.hideGraph ? 0 : 1}
 									onInput={event => this.hideGraph = (event.currentTarget as HTMLInputElement).value === '0'}
+									onKeyPress={(event) => this._isToggleKey(event) && (this.hideGraph = !this.hideGraph)}
 								></input>
 							</span>}
 							{!this.hideGraph && this.autoAdjustLabel && <span class="feature-container">
@@ -1059,6 +1074,7 @@ export class FourierSynth {
 										step={1}
 										value={this.autoAdjust ? 1 : 0}
 										onInput={event => this.autoAdjust = (event.currentTarget as HTMLInputElement).value === '1'}
+										onKeyPress={(event) => this._isToggleKey(event) && (this.autoAdjust = !this.autoAdjust)}
 									></input>
 								</span>
 							}
@@ -1100,6 +1116,7 @@ export class FourierSynth {
 										step={1}
 										value={this.hideOffset ? 0 : 1}
 										onInput={event => this.hideOffset = (event.currentTarget as HTMLInputElement).value === '0'}
+										onKeyPress={(event) => this._isToggleKey(event) && (this.hideOffset = !this.hideOffset)}
 									></input>
 								</span>}
 								{this.endpointsLabel && <span class="feature-container">
@@ -1111,6 +1128,7 @@ export class FourierSynth {
 										step={1}
 										value={this.hideEndpoints ? 0 : 1}
 										onInput={event => this.hideEndpoints = (event.currentTarget as HTMLInputElement).value === '0'}
+										onKeyPress={(event) => this._isToggleKey(event) && (this.hideEndpoints = !this.hideEndpoints)}
 									></input>
 								</span>}
 								{this.dividersLabel && <span class="feature-container">
@@ -1122,6 +1140,7 @@ export class FourierSynth {
 										step={1}
 										value={this.hideDividers ? 0 : 1}
 										onInput={event => this.hideDividers = (event.currentTarget as HTMLInputElement).value === '0'}
+										onKeyPress={(event) => this._isToggleKey(event) && (this.hideDividers = !this.hideDividers)}
 									></input>
 								</span>}
 								{this.gridDotsLabel && <span class="feature-container">
@@ -1133,6 +1152,7 @@ export class FourierSynth {
 										step={1}
 										value={this.hideGridDots ? 0 : 1}
 										onInput={event => this.hideGridDots = (event.currentTarget as HTMLInputElement).value === '0'}
+										onKeyPress={(event) => this._isToggleKey(event) && (this.hideGridDots = !this.hideGridDots)}
 									></input>
 								</span>}
 							</div>
