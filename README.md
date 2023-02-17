@@ -7,7 +7,7 @@ This project is a standalone Web Component for generating waveforms and audio us
 
 # Demo
 
-[Link to demo page](https://unpkg.com/fourier-synth@1.0.1/dist/fourier-synth/fourier-synth.html)
+[Link to demo page](https://unpkg.com/fourier-synth@1.0.1/fourier-synth.html)
 <br></br>
 
 # Develop
