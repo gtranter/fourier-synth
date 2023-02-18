@@ -2,6 +2,8 @@
 
 This project is a standalone Web Component for generating waveforms and audio using Fourier synthesis.
 
+It was originally inspired by a Java Applet created by [Manfred Thole](https://thole.org/manfred/fourier/en_idx.html).
+
 <img alt="fourier-synth" src="src/components/fourier-synth/fourier-synth.png" width="400" />
 <br></br>
 
