@@ -931,12 +931,13 @@ export class FourierSynth {
 					onInput={event => this._updateData(event.currentTarget as HTMLInputElement, id)}
 				></input>
 				<input class="field"
-					readonly={this.autoAdjust && offset}
 					type="number"
+					readonly={this.autoAdjust && offset}
 					min={-this.CONTROL_RANGE}
 					max={this.CONTROL_RANGE}
 					step={0.1}
 					value={this._fieldFormatter.format(control.value)}
+					onBlur={event => this._updateData(event.currentTarget as HTMLInputElement, id)}
 					onChange={event => this._updateData(event.currentTarget as HTMLInputElement, id)}
 				></input>
 				<button class="clear" disabled={this.autoAdjust && offset} onClick={() => this._resetData(id)}>X</button>
@@ -985,9 +986,10 @@ export class FourierSynth {
 								min={this.FREQUENCY_MIN}
 								max={Math.floor(this.FREQUENCY_MAX / this.harmonics)}
 								value={this.fundamental}
+								onBlur={event => this.fundamental = Number((event.currentTarget as HTMLInputElement).value)}
 								onChange={event => this.fundamental = Number((event.currentTarget as HTMLInputElement).value)}
 							></input>
-							<input class="hz" type="text" value="Hz" readonly tabIndex={-1}></input>
+							<span class="hz">Hz</span>
 						</span>}
 						{this.harmonicsLabel && <span class="feature-container">
 							<label class="feature-label">{this.harmonicsLabel}</label>
@@ -996,6 +998,7 @@ export class FourierSynth {
 								min={1}
 								max={this._checkHarmonicsBounds(this.maxHarmonics)}
 								value={this.harmonics}
+								onBlur={event => this.harmonics = this._checkHarmonicsBounds(Number((event.currentTarget as HTMLInputElement).value))}
 								onChange={event => this.harmonics = this._checkHarmonicsBounds(Number((event.currentTarget as HTMLInputElement).value))}
 							></input>
 						</span>}
@@ -1040,7 +1043,7 @@ export class FourierSynth {
 								value={this.gain}
 								onInput={event => this.gain = Number((event.currentTarget as HTMLInputElement).value)}
 							></input>
-							<input class="field"
+							<input class="db"
 								readonly
 								value={`${this._gainFormatter.format(20 * Math.log10(this.gain))}dB`}
 								tabindex={-1}
@@ -1064,7 +1067,7 @@ export class FourierSynth {
 									onKeyPress={(event) => this._isToggleKey(event) && (this.hideGraph = !this.hideGraph)}
 								></input>
 							</span>}
-							{!this.hideGraph && this.autoAdjustLabel && <span class="feature-container">
+							{this.autoAdjustLabel && <span class="feature-container">
 									<label class="feature-label">{this.autoAdjustLabel}</label>
 									<input class="toggle"
 										type="range"
@@ -1101,7 +1104,7 @@ export class FourierSynth {
 										min={1}
 										max={5}
 										value={this.periods}
-										onChange={event => this.periods = Number((event.currentTarget as HTMLInputElement).value)}
+										onInput={event => this.periods = Number((event.currentTarget as HTMLInputElement).value)}
 									></input>
 								</span>}
 							</div>
