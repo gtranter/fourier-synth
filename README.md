@@ -7,7 +7,7 @@ This project is a standalone Web Component for generating waveforms and audio us
 
 # Demo
 
-[Link to demo page](https://unpkg.com/fourier-synth@1.0.2/fourier-synth.html).
+[Link to demo page](https://unpkg.com/fourier-synth@1.1.0/fourier-synth.html).
 <br></br>
 
 # Features
@@ -44,12 +44,12 @@ Add a script tag to the `<head>` section of your page. Replace `https://my.domai
 
 ### Hosting
 
-Download one of the deploy files [fourier-synth@1.0.2.zip](./deploy/fourier-synth@1.0.2.zip) or [fourier-synth@1.0.2.tgz](./deploy/fourier-synth@1.0.2.tgz), and extract the contents. (The tgz file contains a tar file that needs to be extracted.) The extracted `fourier-synth` folder should be copied to your server including all contents. The name of the folder is not important, but it must match the `src` value of your page's script tag, and the file names must not be altered.
+Download one of the deploy files [fourier-synth@1.1.0.zip](./deploy/fourier-synth@1.1.0.zip) or [fourier-synth@1.1.0.tgz](./deploy/fourier-synth@1.1.0.tgz), and extract the contents. (The tgz file contains a tar file that needs to be extracted.) The extracted `fourier-synth` folder should be copied to your server including all contents. The name of the folder is not important, but it must match the `src` value of your page's script tag, and the file names must not be altered.
 
 ### Serving from unpkg.com
 If you don't need guaranteed availability, you can use the component from unpkg.com.
 ```html
-<script type="module" src="https://unpkg.com/fourier-synth@1.0.2/dist/fourier-synth/fourier-synth.esm.js"></script>
+<script type="module" src="https://unpkg.com/fourier-synth@1.1.0/dist/fourier-synth/fourier-synth.esm.js"></script>
 ```
 
 ## Element tag
