@@ -999,7 +999,6 @@ export class FourierSynth {
 								onChange={event => this.harmonics = this._checkHarmonicsBounds(Number((event.currentTarget as HTMLInputElement).value))}
 							></input>
 						</span>}
-						<span class="feature-container spacer"></span>
 						<span class="feature-container icons">
 							<span class="button" onClick={() => this._fileElement.click()}>
 								<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" class="bi bi-file-earmark-arrow-up" viewBox="0 0 16 16">
@@ -1083,7 +1082,7 @@ export class FourierSynth {
 					{/* graph controls */}
 					{(this.lineWidthLabel || this.periodsLabel || this.dividersLabel || this.endpointsLabel || this.gridDotsLabel) &&
 						<div class="header" style={this.hideGraph && {'display': 'none'}}>
-							<div class="row" style={{'margin-right': '16px'}}>
+							<div class="row">
 								{this.lineWidthLabel && <span class="feature-container">
 									<label class="feature-label small">{this.lineWidthLabel}</label>
 									<input class="number"
