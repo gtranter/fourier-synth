@@ -7,7 +7,19 @@ This project is a standalone Web Component for generating waveforms and audio us
 
 # Demo
 
-[Link to demo page](https://unpkg.com/fourier-synth@1.0.2/fourier-synth.html)
+[Link to demo page](https://unpkg.com/fourier-synth@1.0.2/fourier-synth.html).
+<br></br>
+
+# Features
+
+- Waveforms can be saved and loaded via JSON files
+- Real (cosine) and imaginary (sine) harmonic adjustment
+- Adjustable fundamental frequency
+- Unlimited number of harmonics
+- Controls operate in real time
+- Configurable graph options
+- Fully customizable feature set including graph colors
+- All text fully translatable (English is built-in)
 <br></br>
 
 # Develop
