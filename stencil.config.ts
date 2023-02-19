@@ -1,8 +1,9 @@
 import { Config } from '@stencil/core';
 import { sass } from '@stencil/sass';
+import { name as PackageName } from './package.json';
 
 export const config: Config = {
-	namespace: 'fourier-synth',
+	namespace: PackageName,
 	plugins: [
 		sass()
 	],

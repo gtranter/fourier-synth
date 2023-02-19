@@ -5,7 +5,7 @@ This project is a standalone Web Component for generating waveforms and audio us
 It was originally inspired by a Java Applet created by [Manfred Thole](https://thole.org/manfred/fourier/en_idx.html).
 
 <img alt="fourier-synth" src="src/components/fourier-synth/fourier-synth.png" width="400" />
-<br></br>
+
 
 # Demo
 
@@ -61,6 +61,25 @@ Add the element somewhere on your web page. Remember to use style or layout to c
 <fourier-synth style="width: 850px;">Please enable JavaScript to use Fourier Synthesizer</fourier-synth>
 ```
 
-## Customization
+## Fonts & Styling
+
+Fourier Synthesizer will use whatever font has been set in the page, along with the foreground color. It has no background color so you will see the page background. You can easliy customize any of these things through CSS applied to either the page or the `<fourier-synth>` element.
+
+The width of the component should be controlled on the page through either layout or CSS width applied to the `<fourier-synth>` element.
+
+To customize the colors of the graph, use the element attributes. See the [component documentation](./src/components/fourier-synth/readme.md#properties) for details.
+<br></br>
+
+# Customization & Localization
 
 To customize the features of the component or translate into another language, see the [readme file](./src/components/fourier-synth/readme.md) for the web component.
+<br></br>
+
+# User Guide
+
+The user guide for Fourier Synthesizer can be found [here](./USERGUIDE.md).
+<br></br>
+
+# Technical Support
+
+ Technical support for using this component is not available - please try [Stack Overflow](https://stackoverflow.com/) instead.

@@ -2,7 +2,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { gzip, tar, zip } from 'compressing';
-import { version } from '../package.json';
+import { name as PackageName, version as PackageVersion } from '../package.json';
 
 /**
  * Create deploy files in tar, tgz, and zip format.
@@ -11,7 +11,7 @@ import { version } from '../package.json';
  *
  */
 export default function main() {
-	const distDir = path.resolve('./dist/fourier-synth').normalize();
+	const distDir = path.resolve(`./dist/${PackageName}`).normalize();
 
 	if (!fs.existsSync(distDir)) {
 		return console.error(`Cannot create deploy files - directory '${distDir}' does not exist.`);
@@ -30,11 +30,11 @@ export default function main() {
 		fs.mkdirSync(deployPath);
 	}
 
-	const fileName = `${deployDir}fourier-synth`;
-	const tarName = `${fileName}@${version}.tar`;
+	const fileName = `${deployDir}${PackageName}`;
+	const tarName = `${fileName}@${PackageVersion}.tar`;
 	const tarFile = path.resolve(tarName).normalize();
-	const tgzName = `${fileName}@${version}.tgz`;
-	const zipName = `${fileName}@${version}.zip`;
+	const tgzName = `${fileName}@${PackageVersion}.tgz`;
+	const zipName = `${fileName}@${PackageVersion}.zip`;
 
 	Promise.all([
 		tar.compressDir(distDir, tarName).then(() => gzip.compressFile(tarFile, tgzName)).then(() => fs.rmSync(tarFile)),
@@ -43,7 +43,7 @@ export default function main() {
 		console.log(`Created deploy files: '${tgzName}', '${zipName}'.`);
 
 		// delete old versions
-		const regexp = new RegExp(`^fourier-synth@${version}\\.(tgz|zip)$`);
+		const regexp = new RegExp(`^${PackageName}@${PackageVersion}\\.(tgz|zip)$`);
 		fs.readdirSync(deployPath).forEach(deployFile => {
 			if (!deployFile.match(regexp)) {
 				fs.rmSync(path.resolve('./deploy', deployFile).normalize());

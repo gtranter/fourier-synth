@@ -1,17 +1,17 @@
 #!/usr/bin/env node
 import * as fs from 'fs';
 import * as path from 'path';
-import { version } from '../package.json';
+import { name as PackageName, version as PackageVersion } from '../package.json';
 
 export default function main() {
-	const distDir = path.resolve('./dist/fourier-synth').normalize();
+	const distDir = path.resolve(`./dist/${PackageName}`).normalize();
 
 	if (!fs.existsSync(distDir)) {
 		return console.error(`Cannot prepend version - '${distDir}' not found.`);
 	}
 
 	// locate the file
-	const file = path.join(distDir, 'fourier-synth.esm.js').normalize();
+	const file = path.join(distDir, `${PackageName}.esm.js`).normalize();
 	if (!fs.existsSync(file)) {
 		return console.error(`Cannot prepend version to '${file}' - file not found.`);
 	}
@@ -26,9 +26,9 @@ export default function main() {
 	}
 
 	// write the file with new version number
-	fs.writeFileSync(file, `/* v${version} */\n${fileContents}`);
+	fs.writeFileSync(file, `/* v${PackageVersion} */\n${fileContents}`);
 
-	console.log(`Updated version number 'v${version}' in '${file}'.`);
+	console.log(`Updated version number 'v${PackageVersion}' in '${file}'.`);
 }
 
 main();

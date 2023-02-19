@@ -99,3 +99,12 @@ Sound generation is done using the [Web Audio API](https://developer.mozilla.org
 ### Browser support
 
 `Firefox` (as of v112) and `Safari` (as of v16.3) do not support the disable normalization feature of the Web Audio API. As a result, the DC Offset control will not work properly - it is not possible to "clip" the generated wave where it exceeds the maximum level (the limits of the graph area). For best results use a different browser such as `Edge`, `Opera`, or another `Chromium` variant. For more information on browser support see the [MDN documentation](https://developer.mozilla.org/en-US/docs/Web/API/BaseAudioContext/createPeriodicWave#browser_compatibility).
+<br></br>
+
+# Contributing & Reporting Issues
+
+If you're an experienced developer who knows TypeScript, Stencil, web components, SASS, and HTML, and would like to contribute your skills to this project, reach out via [GitHub](https://github.com/gtranter/fourier-synth).
+
+If you've found a problem with Fourier Synthesizer, please [report it](https://github.com/gtranter/fourier-synth/issues).
+
+Technical support for using this component is not available - please try [Stack Overflow](https://stackoverflow.com/) instead.
