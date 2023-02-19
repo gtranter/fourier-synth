@@ -15,7 +15,7 @@
 		margin-bottom: 16px;
 		display: flex;
 		justify-content: flex-start;
-		align-items: end;
+		align-items: center;
 		flex-wrap: wrap;
 		column-gap: 16px;
 		row-gap: 8px;
@@ -29,24 +29,20 @@
 		white-space: nowrap;
 	}
 
-	.feature-container {
+	.feature {
 		display: inline-flex;
 		align-items: center;
 		flex-wrap: nowrap;
 
 		&.icons {
-			align-self: stretch;
 			justify-content: space-between;
-			align-items: flex-end;
+			column-gap: 4px;
 		}
 	}
 
 	.button {
 		cursor: pointer;
-
-		&:first-child {
-			margin-right: 4px;;
-		}
+		display: inline-flex;
 	}
 
 	.feature-label,
@@ -63,6 +59,7 @@
 
 		&:not(:first-child) {
 			margin-left: 24px;
+
 			&.small {
 				margin-left: 16px;
 			}

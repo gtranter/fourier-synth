@@ -967,7 +967,7 @@ export class FourierSynth {
 					{this.mainTitle && <h1>{this.mainTitle}</h1>}
 					{/* controls header */}
 					<div class="header">
-						<span class="feature-container">
+						<span class="feature">
 							<label class="feature-label">{this.audioLabel}</label>
 							<input class="toggle"
 								type="range"
@@ -979,7 +979,7 @@ export class FourierSynth {
 								onKeyPress={(event) => this._isToggleKey(event) && (this.enableAudio = !this.enableAudio)}
 							></input>
 						</span>
-						{this.fundamentalLabel && <span class="feature-container">
+						{this.fundamentalLabel && <span class="feature">
 							<label class="feature-label">{this.fundamentalLabel}</label>
 							<input class="fundamental"
 								type="number"
@@ -991,7 +991,7 @@ export class FourierSynth {
 							></input>
 							<span class="hz">Hz</span>
 						</span>}
-						{this.harmonicsLabel && <span class="feature-container">
+						{this.harmonicsLabel && <span class="feature">
 							<label class="feature-label">{this.harmonicsLabel}</label>
 							<input class="harmonics"
 								type="number"
@@ -1002,7 +1002,7 @@ export class FourierSynth {
 								onChange={event => this.harmonics = this._checkHarmonicsBounds(Number((event.currentTarget as HTMLInputElement).value))}
 							></input>
 						</span>}
-						<span class="feature-container icons">
+						<span class="feature icons">
 							<span class="button" onClick={() => this._fileElement.click()}>
 								<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" class="bi bi-file-earmark-arrow-up" viewBox="0 0 16 16">
 									<path d="M8.5 11.5a.5.5 0 0 1-1 0V7.707L6.354 8.854a.5.5 0 1 1-.708-.708l2-2a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 7.707V11.5z" />
@@ -1055,7 +1055,7 @@ export class FourierSynth {
 					{/* graph header */}
 					{(this.graphLabel || this.autoAdjustLabel) &&
 						<div class="header">
-							{this.graphLabel && <span class="feature-container">
+							{this.graphLabel && <span class="feature">
 								<label class="feature-label">{this.graphLabel}</label>
 								<input class="toggle"
 									type="range"
@@ -1067,7 +1067,7 @@ export class FourierSynth {
 									onKeyPress={(event) => this._isToggleKey(event) && (this.hideGraph = !this.hideGraph)}
 								></input>
 							</span>}
-							{this.autoAdjustLabel && <span class="feature-container">
+							{this.autoAdjustLabel && <span class="feature">
 									<label class="feature-label">{this.autoAdjustLabel}</label>
 									<input class="toggle"
 										type="range"
@@ -1086,7 +1086,7 @@ export class FourierSynth {
 					{(this.lineWidthLabel || this.periodsLabel || this.dividersLabel || this.endpointsLabel || this.gridDotsLabel) &&
 						<div class="header" style={this.hideGraph && {'display': 'none'}}>
 							<div class="row">
-								{this.lineWidthLabel && <span class="feature-container">
+								{this.lineWidthLabel && <span class="feature">
 									<label class="feature-label small">{this.lineWidthLabel}</label>
 									<input class="number"
 										type="number"
@@ -1097,7 +1097,7 @@ export class FourierSynth {
 										onInput={event => this.lineWidth = Number((event.currentTarget as HTMLInputElement).value)}
 									></input>
 								</span>}
-								{this.periodsLabel && <span class="feature-container">
+								{this.periodsLabel && <span class="feature">
 									<label class="feature-label small">{this.periodsLabel}</label>
 									<input class="number"
 										type="number"
@@ -1109,7 +1109,7 @@ export class FourierSynth {
 								</span>}
 							</div>
 							<div class="row">
-								{this.offsetLabel && <span class="feature-container">
+								{this.offsetLabel && <span class="feature">
 									<label class="feature-label small">{this.offsetLabel}</label>
 									<input class="toggle"
 										type="range"
@@ -1121,7 +1121,7 @@ export class FourierSynth {
 										onKeyPress={(event) => this._isToggleKey(event) && (this.hideOffset = !this.hideOffset)}
 									></input>
 								</span>}
-								{this.endpointsLabel && <span class="feature-container">
+								{this.endpointsLabel && <span class="feature">
 									<label class="feature-label small">{this.endpointsLabel}</label>
 									<input class="toggle"
 										type="range"
@@ -1133,7 +1133,7 @@ export class FourierSynth {
 										onKeyPress={(event) => this._isToggleKey(event) && (this.hideEndpoints = !this.hideEndpoints)}
 									></input>
 								</span>}
-								{this.dividersLabel && <span class="feature-container">
+								{this.dividersLabel && <span class="feature">
 									<label class="feature-label small">{this.dividersLabel}</label>
 									<input class="toggle"
 										type="range"
@@ -1145,7 +1145,7 @@ export class FourierSynth {
 										onKeyPress={(event) => this._isToggleKey(event) && (this.hideDividers = !this.hideDividers)}
 									></input>
 								</span>}
-								{this.gridDotsLabel && <span class="feature-container">
+								{this.gridDotsLabel && <span class="feature">
 									<label class="feature-label small">{this.gridDotsLabel}</label>
 									<input class="toggle"
 										type="range"
